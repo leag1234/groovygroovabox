@@ -8,6 +8,8 @@ GroovyGroova Box is a 16-step, 8-track drum machine built for *live* use: you pl
 
 No install, no build step, no account: open the file in a browser and press Play.
 
+An original concept by **Gaël Duval**, developed since **May 2026**. First public release: **11 September 2026**.
+
 ---
 
 ## Features
@@ -120,15 +122,44 @@ docs/mockups/            UI mockups (desktop and mobile redesign)
 
 ## Credits and licenses
 
-Code: MIT License (see `LICENSE`).
+**GroovyGroova Box is an original concept by Gaël Duval**, developed since
+**May 2026** and first published on **11 September 2026**. Concept, design and
+implementation: Gaël Duval.
 
-Samples:
-- **Salamander Drumkit** by Alexander Holm, Creative Commons Attribution (CC BY).
-- **TR-808, Oberheim DMX, Sequential DrumTraks, Boss DR-55, Amen break, jazz and acoustic kits** come from the [Dirt-Samples](https://github.com/tidalcycles/Dirt-Samples) collection maintained by the TidalCycles community. Dirt-Samples is a mix of public domain, Creative Commons and permission-granted material; see that repository for per-folder provenance. Sounds derived from commercial drum machines are used as short one-shot samples in the spirit of that collection.
-- The Rock kit is a processed derivative of the acoustic sources above.
+Code and documentation: **WTFPL** — Do What The Fuck You Want To Public
+License, Version 2 (see [`LICENSE`](LICENSE)). Do what the fuck you want to.
+
+The sample kits are **not** covered by the WTFPL. They are third-party
+material, each under its own license, and some carry obligations the WTFPL
+cannot lift:
+
+- **Salamander Drumkit** by Alexander Holm, licensed
+  **[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)**
+  (Attribution-ShareAlike). Attribution is required, and the ShareAlike term
+  applies to adaptations — including the re-encoded and trimmed samples in
+  `kits/salamander/`.
+- **TR-808, Sequential DrumTraks, Boss DR-55, Amen break, jazz and acoustic
+  kits** come from the [Dirt-Samples](https://github.com/tidalcycles/Dirt-Samples)
+  collection maintained by the TidalCycles community. Note that Dirt-Samples
+  ships no license file and documents provenance for only one of these
+  folders: `808` carries
+  [`TR808.TXT`](https://github.com/tidalcycles/Dirt-Samples/blob/master/808/TR808.TXT)
+  (Michael Fischer / Technopolis, 1994), which states the samples are free of
+  charge but grants no explicit redistribution terms. The other folders carry
+  no provenance documentation at all, so the status of those samples is
+  **undetermined**.
+- **Oberheim DMX**: source **unverified**. There is no `dmx` folder in
+  Dirt-Samples, so the origin of `kits/dmx/` is currently undocumented.
+- The **Rock** and **Tight** kits are processed derivatives of the acoustic
+  sources above, and inherit whatever terms those sources carry.
+
+Samples were re-encoded and renamed to a normalised scheme, so original
+filenames and metadata are no longer present and individual samples cannot be
+traced back to a specific upstream file. Re-establishing that mapping is
+tracked work.
 
 If you are a rights holder and believe a sample is used inappropriately, open an issue and it will be replaced.
 
 ---
 
-Made by [@leag1234](https://github.com/leag1234). Issues and pull requests welcome.
+Made by Gaël Duval ([@leag1234](https://github.com/leag1234)). Issues and pull requests welcome.
