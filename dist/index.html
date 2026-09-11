@@ -1510,7 +1510,7 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
           <div class="pad-list">
             <button class="pad toggle" data-alter="syncope" data-key="Z">Syncope <span class="key">Z</span></button>
             <button class="pad toggle" data-alter="ghost" data-key="X">Ghost Snare <span class="key">X</span></button>
-            <button class="pad toggle" data-alter="clap" data-key="C">Clap 2&4 <span class="key">C</span></button>
+            <button class="pad toggle" data-alter="clap" data-key="P">Clap 2&4 <span class="key">P</span></button>
             <button class="pad toggle" data-alter="snare-plus1" data-key="J" title="Adds a ghost snare 1 step after each snare hit">Snare +1 <span class="key">J</span></button>
             <button class="pad toggle" data-alter="snare-plus3" data-key="K" title="Adds a ghost snare 3 steps after each snare hit">Snare +3 <span class="key">K</span></button>
             <button class="pad toggle" data-alter="broken" data-key="T" title="Broken beat (2000s R&B / Darkchild): kicks displaced onto syncopated 16th positions, dramatic gap before the downbeat, snare stutter. Alternates 2-bar A/B cycle. Try it on Hip-Hop, Funk or House.">Broken <span class="key">T</span></button>
@@ -1520,7 +1520,7 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
         <div class="pad-group">
           <div class="pad-group-title">Fills (1 tap)</div>
           <div class="pad-list">
-            <button class="pad fill-btn" data-fill="fill-classic" data-key="Space">Rock <span class="key">␣</span></button>
+            <button class="pad fill-btn" data-fill="fill-classic" data-key="C">Rock <span class="key">C</span></button>
             <button class="pad fill-btn" data-fill="fill-short" data-key="V">Short <span class="key">V</span></button>
             <button class="pad fill-btn" data-fill="fill-tom-roll" data-key="B">Tom Roll <span class="key">B</span></button>
             <button class="pad fill-btn" data-fill="fill-funk" data-key="N">Funk <span class="key">N</span></button>
@@ -1668,7 +1668,7 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
       <span id="status-text">Stopped</span>
     </div>
     <div>
-      <kbd>Space</kbd> Rock · <kbd>V</kbd> Short · <kbd>B</kbd> Tom · <kbd>N</kbd> Funk · <kbd>M</kbd> Drop
+      <kbd>Space</kbd> Play · <kbd>C</kbd> Rock · <kbd>V</kbd> Short · <kbd>B</kbd> Tom · <kbd>N</kbd> Funk · <kbd>M</kbd> Drop
     </div>
   </footer>
 
@@ -5085,12 +5085,12 @@ function bindControls() {
     'q': 'hh-closed', 'w': 'hh-disco', 'e': 'hh-open', 'r': 'hh-ride',
     'a': 'kick-normal', 's': 'kick-double', 'd': 'kick-half', 'f': 'kick-four',
     'g': 'kick-on3', 'h': 'kick-sync11',
-    'z': 'syncope', 'x': 'ghost', 'c': 'clap',
+    'z': 'syncope', 'x': 'ghost', 'p': 'clap',
     'j': 'snare-plus1', 'k': 'snare-plus3',
     't': 'broken',
   };
   const fillKeyMap = {
-    ' ': 'fill-classic',   // Space = the classic rock fill
+    'c': 'fill-classic',   // Space is play/stop, so the rock fill sits on C
     'v': 'fill-short',
     'b': 'fill-tom-roll',
     'n': 'fill-funk',
@@ -5099,12 +5099,35 @@ function bindControls() {
     'm': 'drop',
   };
 
+  // Controls that own Space / Enter / letters themselves, so we don't fire an
+  // action on top of what the control already does. Deliberately excluded:
+  // range sliders (Space does nothing to them) and buttons — a pad clicked
+  // with the mouse keeps focus, and transport must keep working after that.
+  const ownsKeys = el => {
+    if (!el || el === document.body) return false;
+    if (el.isContentEditable) return true;
+    const tag = el.tagName;
+    if (tag === 'SELECT' || tag === 'TEXTAREA') return true;
+    return tag === 'INPUT' && el.type !== 'range';
+  };
+
   document.addEventListener('keydown', e => {
     if (e.repeat) return;
     // A/V calibration mode captures every key as a tap
     if (window._calibActive) { e.preventDefault(); calibTap(); return; }
+    // Don't double-fire when a focused control already answers to this key
+    if (ownsKeys(e.target)) return;
     const k = e.key.toLowerCase();
-    if (k === 'enter') { e.preventDefault(); state.playing ? stopPlaying() : startPlaying(); return; }
+    if (k === 'enter' || k === ' ') {
+      e.preventDefault();
+      // preventDefault already stops a focused button from re-activating on
+      // Space; blurring it makes that independent of browser quirks.
+      if (document.activeElement && document.activeElement.tagName === 'BUTTON') {
+        document.activeElement.blur();
+      }
+      state.playing ? stopPlaying() : startPlaying();
+      return;
+    }
     if (k === 'y') { e.preventDefault(); toggleWildcardArm(); return; }
     if (keyMap[k]) {
       const pad = document.querySelector(`.pad.toggle[data-alter="${keyMap[k]}"]`);

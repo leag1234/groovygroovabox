@@ -64,13 +64,13 @@ Any articulation a sampled kit lacks falls back to a matching synth kit, so ever
 
 | Key | Action |
 |---|---|
-| `Enter` | Play / Stop |
+| `Space` or `Enter` | Play / Stop |
 | `Q` `W` `E` `R` | Hi-hat: closed, disco, open 16ths, ride |
 | `A` `S` `D` `F` `G` `H` | Kick: standard, double, half, four-on-floor, double on 3, syncope 11 |
-| `Z` `X` `C` | Syncope, ghost snare, clap 2&4 |
+| `Z` `X` `P` | Syncope, ghost snare, clap 2&4 |
 | `J` `K` | Snare echo +1, +3 |
 | `T` | Broken |
-| `Space` `V` `B` `N` | Fills: rock, short, tom roll, funk |
+| `C` `V` `B` `N` | Fills: rock, short, tom roll, funk |
 | `M` (hold) | Drop |
 | `Y` | Wildcard (arms the next bar) |
 
