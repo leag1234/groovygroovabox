@@ -1302,6 +1302,29 @@
     font-size: 8px;
   }
 
+  /* ---------- PAGE CREDIT ---------- */
+  .credit {
+    position: relative;
+    z-index: 2;
+    max-width: 1380px;
+    margin: 14px auto 26px;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+  }
+  .credit a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line-2);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .credit a:hover,
+  .credit a:focus-visible {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
   /* ---------- RESPONSIVE (interim: mobile phase lands next) ---------- */
   @media (max-width: 1150px) {
     .side-panel { width: 100%; border-left: none; border-top: 1px solid var(--line); }
@@ -1615,6 +1638,10 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
     </div>
   </footer>
 
+</div>
+
+<div class="credit">
+  © Gaël Duval 2026 — <a href="https://github.com/leag1234/groovygroovabox" target="_blank" rel="noopener noreferrer">published under the WTFPL license</a>
 </div>
 
 <div class="countdown-overlay" id="countdown">
