@@ -1325,6 +1325,40 @@
     border-bottom-color: var(--accent);
   }
 
+  /* Sample attribution, injected at build time by inject_samples.py */
+  .credit-samples { margin-top: 6px; text-align: left; }
+  .credit-samples > summary {
+    text-align: center;
+    cursor: pointer;
+    color: var(--ink-faint);
+    list-style: none;
+  }
+  .credit-samples > summary::-webkit-details-marker { display: none; }
+  .credit-samples > summary::before {
+    content: '\25b8\00a0';
+    display: inline-block;
+    transition: transform 0.15s;
+  }
+  .credit-samples[open] > summary::before { content: '\25be\00a0'; }
+  .credit-samples > summary:hover { color: var(--ink-dim); }
+  .credit-samples ul {
+    max-width: 760px;
+    margin: 10px auto 0;
+    padding: 10px 16px;
+    list-style: none;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: #0d0d0d;
+    line-height: 1.7;
+  }
+  .credit-samples li + li { margin-top: 7px; }
+  .credit-samples strong { color: var(--ink-dim); font-weight: normal; }
+  .credit-note {
+    display: block;
+    color: #444;
+    letter-spacing: 0.04em;
+  }
+
   /* ---------- RESPONSIVE (interim: mobile phase lands next) ---------- */
   @media (max-width: 1150px) {
     .side-panel { width: 100%; border-left: none; border-top: 1px solid var(--line); }
@@ -1641,7 +1675,21 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
 </div>
 
 <div class="credit">
-  © Gaël Duval 2026 — <a href="https://github.com/leag1234/groovygroovabox" target="_blank" rel="noopener noreferrer">published under the WTFPL license</a>
+  <div>© Gaël Duval 2026 — <a href="https://github.com/leag1234/groovygroovabox" target="_blank" rel="noopener noreferrer">published under the WTFPL license</a></div>
+  <details class="credit-samples">
+    <summary>Sample kits: 9 third-party kits, not covered by the WTFPL — licenses and attribution</summary>
+    <ul>
+      <li><strong>Salam.</strong> — Salamander Drumkit by Alexander Holm, <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 3.0</a> (<a href="https://archive.org/details/SalamanderDrumkit" target="_blank" rel="noopener noreferrer">source</a>)<span class="credit-note">Attribution required. ShareAlike applies to adaptations, including the re-encoded and trimmed samples here.</span></li>
+      <li><strong>808</strong> — Roland TR-808 Sound Sample Set by Michael Fischer (Technopolis), 1994, Free of charge, no explicit redistribution terms (<a href="https://github.com/tidalcycles/Dirt-Samples/blob/master/808/TR808.TXT" target="_blank" rel="noopener noreferrer">source</a>)<span class="credit-note">Via Dirt-Samples. TR808.TXT states the set is free but grants no redistribution or sublicensing terms.</span></li>
+      <li><strong>DMX</strong> — Oberheim DMX, Undetermined<span class="credit-note">Source unverified. There is no dmx folder in Dirt-Samples, so the origin of these samples is undocumented.</span></li>
+      <li><strong>DrumTraks</strong> — Sequential DrumTraks, Undetermined (<a href="https://github.com/tidalcycles/Dirt-Samples" target="_blank" rel="noopener noreferrer">source</a>)<span class="credit-note">Via Dirt-Samples, which ships no license file and no provenance documentation for this folder.</span></li>
+      <li><strong>DR-55</strong> — Boss DR-55, Undetermined (<a href="https://github.com/tidalcycles/Dirt-Samples" target="_blank" rel="noopener noreferrer">source</a>)<span class="credit-note">Via Dirt-Samples, which ships no license file and no provenance documentation for this folder.</span></li>
+      <li><strong>Amen</strong> — Amen break, Undetermined — likely encumbered (<a href="https://github.com/tidalcycles/Dirt-Samples" target="_blank" rel="noopener noreferrer">source</a>)<span class="credit-note">Derived from &quot;Amen, Brother&quot; (The Winstons, 1969), a copyrighted recording never licensed for reuse. Via Dirt-Samples, which documents no provenance for this folder.</span></li>
+      <li><strong>Jazz</strong> — Jazz kit, Undetermined (<a href="https://github.com/tidalcycles/Dirt-Samples" target="_blank" rel="noopener noreferrer">source</a>)<span class="credit-note">Via Dirt-Samples, which ships no license file and no provenance documentation for this folder.</span></li>
+      <li><strong>Tight</strong> — Tight acoustic kit, Undetermined (<a href="https://github.com/tidalcycles/Dirt-Samples" target="_blank" rel="noopener noreferrer">source</a>)<span class="credit-note">Processed derivative of the Dirt-Samples acoustic sources; inherits whatever terms those carry.</span></li>
+      <li><strong>Rock</strong> — Rock kit, Undetermined (<a href="https://github.com/tidalcycles/Dirt-Samples" target="_blank" rel="noopener noreferrer">source</a>)<span class="credit-note">Processed derivative of the acoustic sources (heavy mix chain); inherits whatever terms those carry.</span></li>
+    </ul>
+  </details>
 </div>
 
 <div class="countdown-overlay" id="countdown">

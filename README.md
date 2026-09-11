@@ -106,6 +106,28 @@ The third argument is the synth kit used as fallback for any missing articulatio
 
 Tips: keep hats and short hits as WAV (MP3 smears transients under 100 ms), MP3 at 192 kbps is transparent for longer sounds. Run `python3 tools/inject_samples.py` without arguments for the full documentation.
 
+### Kit attribution
+
+Each kit folder carries its own `CREDITS` file, and the injector renders those
+into the page at build time, next to the copyright line. That way attribution
+travels with the build: `dist/index.html` is a standalone 12 MB file, and
+licenses that require a notice (CC BY-SA, for one) need it present in that
+file, not only here in the README.
+
+One `key: value` per line; every field is optional:
+
+```
+name: Salamander Drumkit
+author: Alexander Holm
+license: CC BY-SA 3.0
+license-url: https://creativecommons.org/licenses/by-sa/3.0/
+source-url: https://archive.org/details/SalamanderDrumkit
+note: Attribution required. ShareAlike applies to adaptations.
+```
+
+A kit with no `CREDITS` file builds fine but prints a warning, since it will
+ship without attribution.
+
 ---
 
 ## Project layout
@@ -115,6 +137,7 @@ dist/index.html          Ready-to-use build with all sampled kits (deployed at i
 src/groovygroovabox.html Source, single file, no samples
 tools/inject_samples.py  Sample kit injector
 kits/                    The sample kits used to build dist/
+kits/<kit>/CREDITS       Per-kit attribution, rendered into the build
 docs/mockups/            UI mockups (desktop and mobile redesign)
 LICENSE                  WTFPL v2, verbatim
 NOTICE                   Copyright, authorship and license scope
@@ -155,6 +178,10 @@ cannot lift:
   Dirt-Samples, so the origin of `kits/dmx/` is currently undocumented.
 - The **Rock** and **Tight** kits are processed derivatives of the acoustic
   sources above, and inherit whatever terms those sources carry.
+
+Per-kit attribution lives in `kits/<kit>/CREDITS` and is rendered into
+`dist/index.html` at build time, so the notice travels with the standalone
+build rather than living only in this file.
 
 Samples were re-encoded and renamed to a normalised scheme, so original
 filenames and metadata are no longer present and individual samples cannot be

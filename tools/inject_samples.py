@@ -51,6 +51,13 @@ USAGE
    fallback-synth-kit is one of: acoustic, electronic, studio — used for any
    (track, articulation) the kit does not provide.
 
+3. Attribution. A kit directory may carry a CREDITS file, one "key: value"
+   per line, recognized keys being name, author, license, license-url,
+   source-url and note. Those are rendered as static markup into the page at
+   the <!-- SAMPLE-CREDITS --> marker, so the notice ships inside the built
+   HTML instead of living only alongside it. A kit without a CREDITS file
+   builds fine but warns, since it will ship without attribution.
+
    This produces "<html>-with-samples.html" next to the source HTML.
 
 NOTES
@@ -65,6 +72,7 @@ NOTES
 """
 
 import base64
+import html
 import json
 import mimetypes
 import os
@@ -85,6 +93,11 @@ VALID_TRACKS = {
     'cowbell': ['normal'],
 }
 
+CREDITS_FILENAMES = ('CREDITS', 'CREDITS.txt')
+
+CREDITS_MARKER = '<!-- SAMPLE-CREDITS -->'
+
+
 FILENAME_RE = re.compile(
     r'^(?P<track>[a-z]+)__(?P<art>[a-z]+)(?:__(?P<vel>\d+))?\.(wav|mp3|ogg)$',
     re.IGNORECASE,
@@ -99,6 +112,8 @@ def scan_samples(directory: Path):
     for f in sorted(directory.iterdir()):
         if not f.is_file():
             continue
+        if f.name in CREDITS_FILENAMES:
+            continue                      # attribution metadata, not a sample
         m = FILENAME_RE.match(f.name)
         if not m:
             skipped.append(f.name)
@@ -140,13 +155,88 @@ def build_samples_dict(scanned):
     return out
 
 
+def read_credits(directory: Path):
+    """Read a kit's CREDITS file into a dict.
+
+    Format is one "key: value" per line; blank lines and lines starting with
+    '#' are ignored. Recognized keys: name, author, license, license-url,
+    source-url, note. Returns {} when the kit ships no CREDITS file.
+    """
+    for fname in CREDITS_FILENAMES:
+        path = directory / fname
+        if path.is_file():
+            break
+    else:
+        return {}
+
+    meta = {}
+    for line in path.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#') or ':' not in line:
+            continue
+        key, _, value = line.partition(':')
+        value = value.strip()
+        if value:
+            meta[key.strip().lower()] = value
+    return meta
+
+
+def render_credits_html(kits):
+    """Build the static attribution block for the kits being embedded.
+
+    Emitted as plain markup rather than script-rendered, so the notice is
+    present in the file even with JavaScript disabled.
+    """
+    entries = []
+    for kid, kit in kits.items():
+        meta = kit.get('credits') or {}
+        if not meta:
+            continue
+
+        e = html.escape
+        head = '<strong>' + e(kit['label']) + '</strong> \u2014 ' + e(meta.get('name', kid))
+        if meta.get('author'):
+            head += ' by ' + e(meta['author'])
+        parts = [head]
+        if meta.get('license'):
+            lic = e(meta['license'])
+            if meta.get('license-url'):
+                lic = ('<a href="' + e(meta['license-url']) + '" target="_blank" '
+                       'rel="noopener noreferrer">' + lic + '</a>')
+            parts.append(lic)
+        line = ', '.join(parts)
+
+        if meta.get('source-url'):
+            line += (' (<a href="' + e(meta['source-url']) + '" target="_blank" '
+                     'rel="noopener noreferrer">source</a>)')
+        if meta.get('note'):
+            line += '<span class="credit-note">' + e(meta['note']) + '</span>'
+        entries.append('      <li>' + line + '</li>')
+
+    if not entries:
+        return ''
+
+    return (
+        '<details class="credit-samples">\n'
+        '    <summary>Sample kits: ' + str(len(entries)) + ' third-party kits, '
+        'not covered by the WTFPL \u2014 licenses and attribution</summary>\n'
+        '    <ul>\n' + '\n'.join(entries) + '\n    </ul>\n'
+        '  </details>'
+    )
+
+
 def inject(html_path: Path, samples_dict, output_path: Path, kits=None):
     """Inject samples into the HTML as a <script> at the top of the body.
     Single kit: window.CUSTOM_SAMPLES (legacy). Multi-kit: window.CUSTOM_SAMPLE_KITS."""
-    html = html_path.read_text(encoding='utf-8')
+    source = html_path.read_text(encoding='utf-8')
 
     if kits is not None:
-        payload = json.dumps(kits, separators=(',', ':'))
+        # Attribution is rendered into the markup, not shipped to the runtime.
+        runtime_kits = {
+            kid: {k: v for k, v in kit.items() if k != 'credits'}
+            for kid, kit in kits.items()
+        }
+        payload = json.dumps(runtime_kits, separators=(',', ':'))
         assign = f'window.CUSTOM_SAMPLE_KITS = {payload};'
     else:
         payload = json.dumps(samples_dict, separators=(',', ':'))
@@ -158,13 +248,22 @@ def inject(html_path: Path, samples_dict, output_path: Path, kits=None):
         '</script>\n'
     )
 
+    # Sample attribution, substituted into the page credit
+    credits_html = render_credits_html(kits) if kits else ''
+    if CREDITS_MARKER in source:
+        source = source.replace(CREDITS_MARKER, credits_html, 1)
+    elif credits_html:
+        print(f'WARNING: {CREDITS_MARKER} not found in {html_path.name}; '
+              'sample attribution could not be placed in the page.',
+              file=sys.stderr)
+
     # Insert right after <body ...> tag
     body_re = re.compile(r'(<body[^>]*>)', re.IGNORECASE)
-    m = body_re.search(html)
+    m = body_re.search(source)
     if not m:
         raise RuntimeError('Could not find <body> tag in HTML.')
     insert_at = m.end()
-    new_html = html[:insert_at] + '\n' + injection + html[insert_at:]
+    new_html = source[:insert_at] + '\n' + injection + source[insert_at:]
 
     output_path.write_text(new_html, encoding='utf-8')
 
@@ -217,7 +316,19 @@ def main_multi(argv):
             print(f'ERROR: {d} is not a directory', file=sys.stderr)
             sys.exit(1)
         scanned = scan_and_report(d, f'kit {kid} / {label}')
-        kits[kid] = {'label': label, 'fallback': fallback, 'samples': build_samples_dict(scanned)}
+        credits = read_credits(d)
+        if credits:
+            print(f'  credits: {credits.get("name", kid)}'
+                  f' \u2014 {credits.get("license", "license unstated")}')
+        else:
+            print(f'  WARNING: no CREDITS file in {d}; this kit will ship '
+                  'without attribution', file=sys.stderr)
+        kits[kid] = {
+            'label': label,
+            'fallback': fallback,
+            'samples': build_samples_dict(scanned),
+            'credits': credits,
+        }
         i += 5
     if not kits:
         print(__doc__); sys.exit(1)
