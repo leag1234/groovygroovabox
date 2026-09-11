@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GroovyGroova — UI Mockup (static)</title>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --panel: #141414;
+  --panel-2: #1a1a1a;
+  --line: #232323;
+  --line-2: #2e2e2e;
+  --ink: #e8e8e8;
+  --ink-dim: #9a9a9a;
+  --ink-faint: #5f5f5f;
+  --accent: #ff5722;
+  --led-amber: #ffb627;
+  --led-cyan: #00e5ff;
+  --led-green: #4ade80;
+  --c-kick: #ff5722; --c-snare: #ffb627; --c-clap: #ff2d95; --c-hh: #00e5ff;
+  --c-ride: #bf7fff; --c-tom: #ff8c42; --c-crash: #f0f0f0; --c-cowbell: #d4a574;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink);
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 12px; }
+button, select, input { font-family: inherit; }
+
+/* ============ HEADER: full transport, always visible ============ */
+.header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 16px; border-bottom: 1px solid var(--line-2);
+  background: var(--panel); flex-wrap: wrap;
+}
+.logo { font-size: 15px; letter-spacing: 0.22em; font-weight: 700; white-space: nowrap; }
+.logo .o1 { color: var(--accent); } .logo .o2 { color: var(--led-cyan); }
+.logo small { font-size: 8px; letter-spacing: 0.3em; color: var(--ink-faint); display: block; }
+.mockup-badge { font-size: 8px; letter-spacing: 0.2em; color: var(--bg);
+  background: var(--led-amber); padding: 2px 6px; border-radius: 2px; }
+
+.transport { display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap; }
+.play-btn {
+  background: var(--accent); border: none; color: #fff; font-weight: 700;
+  padding: 9px 20px; font-size: 12px; letter-spacing: 0.12em; cursor: pointer;
+  border-radius: 3px; text-transform: uppercase;
+}
+.t-group { display: flex; align-items: center; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--line-2);
+  padding: 5px 9px; border-radius: 3px; }
+.t-group .lbl { font-size: 8px; letter-spacing: 0.14em; color: var(--ink-faint); text-transform: uppercase; }
+.t-group input[type=range] { width: 76px; accent-color: var(--accent); }
+.t-group .val { font-size: 12px; color: var(--led-amber); min-width: 28px; text-align: right; }
+.bpm-btn { width: 18px; height: 18px; background: #222; color: var(--ink-dim);
+  border: 1px solid var(--line-2); cursor: pointer; border-radius: 2px; font-size: 11px; line-height: 1; }
+
+.displays { display: flex; gap: 12px; background: #000; border: 1px solid var(--line-2);
+  padding: 6px 14px; border-radius: 3px; }
+.disp { text-align: center; }
+.disp .lbl { font-size: 7px; letter-spacing: 0.2em; color: var(--ink-faint); text-transform: uppercase; }
+.disp .num { font-size: 17px; letter-spacing: 0.1em; }
+.disp .num.amber { color: var(--led-amber); } .disp .num.cyan { color: var(--led-cyan); }
+.disp .num.green { color: var(--led-green); }
+
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.h-btn { background: var(--panel-2); border: 1px solid var(--line-2); color: var(--ink-dim);
+  padding: 8px 13px; font-size: 10px; letter-spacing: 0.1em; cursor: pointer;
+  border-radius: 3px; text-transform: uppercase; }
+.h-btn:hover { border-color: var(--accent); color: var(--ink); }
+.rec-chip { display: flex; align-items: center; gap: 5px; font-size: 9px; color: var(--ink-dim);
+  border: 1px solid var(--line-2); border-radius: 3px; padding: 7px 9px; }
+.rec-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--led-green); }
+
+/* ============ MAIN: full-width grid, console at the bottom ============ */
+.main { display: flex; flex-direction: column; min-height: 0; }
+
+.grid-zone { padding: 12px 16px 16px; min-width: 0; }
+
+/* Bottom console: live pads (left) + settings tabs (right) */
+.bottom-console { display: flex; align-items: stretch; border-top: 1px solid var(--line-2); }
+
+/* Pattern bar above the grid */
+.pattern-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.pattern-bar .lbl { font-size: 8px; letter-spacing: 0.18em; color: var(--ink-faint); text-transform: uppercase; }
+.pattern-bar select {
+  background: var(--panel-2); color: var(--ink); border: 1px solid var(--line-2);
+  padding: 7px 10px; border-radius: 3px; font-size: 11px; min-width: 170px;
+}
+.seg { display: flex; border: 1px solid var(--line-2); border-radius: 3px; overflow: hidden; }
+.seg button { background: var(--panel-2); border: none; color: var(--ink-dim);
+  padding: 7px 12px; font-size: 9px; letter-spacing: 0.1em; cursor: pointer; text-transform: uppercase; }
+.seg button.active { background: var(--led-cyan); color: #000; font-weight: 700; }
+.pattern-status { font-size: 9px; color: var(--ink-faint); }
+
+/* Track grid — fixed articulation column keeps 16-step grids aligned */
+.tracks { display: flex; flex-direction: column; gap: 5px; }
+.track-row { display: grid; grid-template-columns: 108px 24px 128px 1fr 74px;
+  gap: 8px; align-items: center; }
+.track-name { display: flex; align-items: center; gap: 7px; font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase; }
+.track-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.mute-btn { width: 22px; height: 22px; background: var(--panel-2); color: var(--ink-faint);
+  border: 1px solid var(--line-2); border-radius: 2px; cursor: pointer; font-size: 9px; }
+.mute-btn.muted { background: var(--accent); color: #fff; border-color: var(--accent); }
+.arts { display: flex; gap: 3px; min-height: 22px; align-items: center; }
+.art-chip { min-width: 26px; height: 22px; padding: 0 5px; background: var(--panel-2);
+  border: 1px solid var(--line-2); color: var(--ink-dim); border-radius: 2px;
+  font-size: 9px; cursor: pointer; }
+.art-chip.active { border-color: var(--led-amber); color: var(--led-amber); }
+.steps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; }
+.step { aspect-ratio: 1; max-height: 34px; background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 3px; cursor: pointer; }
+.step:nth-child(4n+1) { border-color: var(--line-2); }
+.step.on { border: none; box-shadow: 0 0 8px currentColor; }
+.track-vol { display: flex; align-items: center; gap: 4px; }
+.track-vol input { width: 100%; accent-color: #666; }
+
+/* Live pad strip — two compact rows */
+.live-strip { flex: 1; min-width: 0; padding: 10px 14px 14px; }
+.live-strip .strip-title { font-size: 8px; letter-spacing: 0.22em; color: var(--ink-faint);
+  text-transform: uppercase; margin-bottom: 8px; }
+.pad-rows { display: flex; flex-direction: column; gap: 6px; }
+.pad-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.pad-group { display: flex; align-items: stretch; gap: 4px;
+  border: 1px solid var(--line); border-radius: 4px; padding: 5px 6px 5px 4px; }
+.pad-group .g-lbl { writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: 7px; letter-spacing: 0.16em; color: var(--ink-faint); text-transform: uppercase;
+  text-align: center; padding: 0 1px; }
+.pad { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; min-width: 62px; padding: 6px 8px; background: var(--panel-2);
+  border: 1px solid var(--line-2); border-radius: 3px; cursor: pointer;
+  color: var(--ink-dim); font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; }
+.pad:hover { border-color: var(--ink-faint); color: var(--ink); }
+.pad.active { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 0 10px rgba(255,87,34,0.12); }
+.pad .keycap { font-size: 8px; background: #000; border: 1px solid var(--line-2);
+  border-bottom-width: 2px; border-radius: 2px; padding: 1px 5px; color: var(--ink-faint); }
+.pad.fill { border-style: dashed; }
+.pad.momentary { border-color: #5a2020; }
+
+/* ============ SETTINGS PANEL (bottom-right): 3 tabs, compact ============ */
+.side { border-left: 1px solid var(--line-2); background: var(--panel);
+  display: flex; flex-direction: column; width: 460px; flex-shrink: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--line-2); }
+.tab { flex: 1; background: none; border: none; color: var(--ink-faint);
+  padding: 9px 4px; font-size: 9px; letter-spacing: 0.16em; cursor: pointer;
+  text-transform: uppercase; border-bottom: 2px solid transparent; }
+.tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.tab-body { padding: 12px; display: none; grid-template-columns: 1fr 1fr;
+  gap: 12px 16px; align-content: start; overflow-y: auto; }
+.tab-body.active { display: grid; }
+#tab-setup.active { grid-template-columns: 1fr 1fr 1fr; }
+.side h4 { font-size: 8px; letter-spacing: 0.2em; color: var(--ink-faint);
+  text-transform: uppercase; margin-bottom: 2px; }
+.side select { width: 100%; background: var(--panel-2); color: var(--ink);
+  border: 1px solid var(--line-2); padding: 7px 8px; border-radius: 3px; font-size: 11px; }
+.krow { display: grid; grid-template-columns: 58px 1fr 34px; gap: 6px; align-items: center; }
+.krow .lbl { font-size: 8px; letter-spacing: 0.06em; color: var(--ink-dim); text-transform: uppercase; }
+.krow input { width: 100%; min-width: 0; accent-color: var(--accent); }
+.krow .val { font-size: 9px; color: var(--led-amber); text-align: right; }
+.hint { font-size: 9px; line-height: 1.5; color: var(--ink-faint); }
+.feel-group { border-left: 2px solid var(--line-2); padding-left: 8px; display: flex;
+  flex-direction: column; gap: 8px; }
+.side-btn { width: 100%; background: var(--panel-2); border: 1px solid var(--line-2);
+  color: var(--ink-dim); padding: 7px; font-size: 9px; letter-spacing: 0.1em;
+  cursor: pointer; border-radius: 3px; text-transform: uppercase; }
+.side-btn:hover { border-color: var(--accent); color: var(--ink); }
+.kit-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.kit-btn { background: var(--panel-2); border: 1px solid var(--line-2); color: var(--ink-dim);
+  padding: 10px 4px; font-size: 9px; letter-spacing: 0.1em; cursor: pointer;
+  border-radius: 3px; text-transform: uppercase; }
+.kit-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.toggle-row { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+.toggle-row .sw { width: 30px; height: 16px; background: #222; border: 1px solid var(--line-2);
+  border-radius: 9px; position: relative; flex-shrink: 0; }
+.toggle-row .sw::after { content: ''; position: absolute; width: 12px; height: 12px;
+  background: var(--ink-faint); border-radius: 50%; top: 1px; left: 2px; }
+.toggle-row.on .sw { background: var(--accent); border-color: var(--accent); }
+.toggle-row.on .sw::after { left: 15px; background: #fff; }
+.toggle-row .t-lbl { font-size: 9px; letter-spacing: 0.08em; color: var(--ink-dim); text-transform: uppercase; }
+.status-chip { font-size: 9px; color: var(--ink-faint); border: 1px solid var(--line);
+  padding: 7px 9px; border-radius: 3px; display: flex; align-items: center; gap: 6px; }
+.mix-track-vols { display: none; flex-direction: column; gap: 7px; }
+
+/* ============ STATUS BAR ============ */
+.statusbar { display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 16px; border-top: 1px solid var(--line-2); background: var(--panel);
+  font-size: 9px; color: var(--ink-faint); letter-spacing: 0.08em; }
+.statusbar .keys span { background: #000; border: 1px solid var(--line-2);
+  padding: 1px 5px; border-radius: 2px; margin: 0 2px; }
+
+/* ============ MIDI MODAL (static) ============ */
+.modal-back { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 50;
+  align-items: center; justify-content: center; }
+.modal-back.open { display: flex; }
+.modal { width: min(430px, 92vw); background: var(--panel); border: 1px solid var(--line-2);
+  border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 13px; }
+.modal h3 { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
+.map-list { display: flex; flex-direction: column; gap: 5px; max-height: 220px; overflow-y: auto; }
+.map-row { display: flex; justify-content: space-between; font-size: 10px;
+  background: var(--panel-2); border: 1px solid var(--line); padding: 6px 9px; border-radius: 3px; }
+.map-row .fn { color: var(--ink-dim); } .map-row .src { color: var(--led-cyan); }
+
+/* ============ MOBILE ============ */
+.mobile-only { display: none; }
+@media (max-width: 760px) {
+  .header { gap: 8px; padding: 8px 10px; }
+  .logo { font-size: 12px; } .logo small { display: none; }
+  .transport { order: 3; width: 100%; }
+  .displays { padding: 4px 10px; } .disp .num { font-size: 14px; }
+  .t-group input[type=range] { width: 56px; }
+  .header-actions { margin-left: auto; }
+  .grid-zone { padding: 10px 8px; }
+
+  /* Grid: horizontal scroll, sticky names, no per-row volume */
+  .grid-scroller { overflow-x: auto; }
+  .tracks { min-width: 700px; }
+  .track-row { grid-template-columns: 86px 22px 1fr; }
+  .track-name { position: sticky; left: 0; background: var(--bg); z-index: 2;
+    font-size: 9px; padding: 2px 0; }
+  .arts { grid-column: 1 / 4; padding-left: 90px; min-height: 18px; }
+  .art-chip { min-width: 24px; height: 19px; font-size: 8px; }
+  .track-vol { display: none; }
+  .step { max-height: none; min-width: 30px; }
+
+  /* Pads: touch grid */
+  .pad-group { flex-wrap: wrap; }
+  .pad { min-width: 68px; min-height: 48px; }
+
+  /* Console stacks vertically: pads then settings panel */
+  .bottom-console { flex-direction: column; }
+  .side { border-left: none; border-top: 1px solid var(--line-2); width: 100%; }
+  .tab-body.active, #tab-setup.active { grid-template-columns: 1fr; }
+  .mix-track-vols { display: flex; }
+  .statusbar .keys { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= HEADER = full transport ================= -->
+<header class="header">
+  <div>
+    <div class="logo">GR<span class="o1">OO</span>VY·GR<span class="o2">OO</span>VA <small>BOX // LIVE SEQUENCER</small></div>
+  </div>
+  <span class="mockup-badge">MOCKUP</span>
+
+  <div class="transport">
+    <button class="play-btn">▶ Play</button>
+    <div class="t-group" title="Tempo">
+      <span class="lbl">BPM</span>
+      <button class="bpm-btn">−</button>
+      <input type="range" min="40" max="220" value="120">
+      <button class="bpm-btn">+</button>
+      <span class="val">120</span>
+    </div>
+    <div class="t-group" title="Swing: shifts odd 16ths toward triplet feel">
+      <span class="lbl">Swing</span>
+      <input type="range" min="0" max="60" value="0">
+      <span class="val">0%</span>
+    </div>
+    <div class="displays">
+      <div class="disp"><div class="lbl">Tempo</div><div class="num amber">120</div></div>
+      <div class="disp"><div class="lbl">Step</div><div class="num cyan">04</div></div>
+      <div class="disp"><div class="lbl">Bar</div><div class="num green">69</div></div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <div class="rec-chip" title="MIDI recording status"><span class="rec-dot"></span> 895 hits</div>
+    <button class="h-btn">Clear</button>
+    <button class="h-btn">⤓ MIDI</button>
+  </div>
+</header>
+
+<!-- ================= MAIN ================= -->
+<div class="main">
+
+  <!-- ===== GRID ZONE ===== -->
+  <div class="grid-zone">
+
+    <div class="pattern-bar">
+      <span class="lbl">Pattern</span>
+      <select>
+        <optgroup label="Rock / Pop">
+          <option selected>Rock</option><option>Pop</option><option>Punk</option><option>Empty</option>
+        </optgroup>
+        <optgroup label="Urban">
+          <option>Hip-Hop</option><option>R&amp;B 2000s</option><option>Trap</option><option>Reggae</option>
+        </optgroup>
+        <optgroup label="Electronic">
+          <option>House</option><option>Techno</option><option>Disco</option><option>Breakbeat</option>
+        </optgroup>
+        <optgroup label="World / Groove">
+          <option>Funk</option><option>Afrobeat</option><option>Bossa</option><option>Son</option><option>Guaguancó</option>
+        </optgroup>
+      </select>
+      <div class="seg">
+        <button>Now</button>
+        <button class="active">Next bar</button>
+      </div>
+      <span class="pattern-status">Queued: —</span>
+    </div>
+
+    <div class="grid-scroller">
+    <div class="tracks">
+      <!-- KICK -->
+      <div class="track-row">
+        <div class="track-name"><span class="track-dot" style="background:var(--c-kick)"></span>Kick</div>
+        <button class="mute-btn">M</button>
+        <div class="arts"></div>
+        <div class="steps">
+          <div class="step on" style="background:var(--c-kick);color:var(--c-kick)"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step on" style="background:var(--c-kick);color:var(--c-kick)"></div><div class="step"></div>
+          <div class="step on" style="background:var(--c-kick);color:var(--c-kick)"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        </div>
+        <div class="track-vol"><input type="range" value="80"></div>
+      </div>
+      <!-- SNARE -->
+      <div class="track-row">
+        <div class="track-name"><span class="track-dot" style="background:var(--c-snare)"></span>Snare</div>
+        <button class="mute-btn">M</button>
+        <div class="arts">
+          <button class="art-chip" title="Rim shot">R</button>
+          <button class="art-chip" title="Ghost note">g</button>
+          <button class="art-chip" title="Cross-stick">x</button>
+        </div>
+        <div class="steps">
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step on" style="background:var(--c-snare);color:var(--c-snare)"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step on" style="background:var(--c-snare);color:var(--c-snare)"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        </div>
+        <div class="track-vol"><input type="range" value="70"></div>
+      </div>
+      <!-- CLAP -->
+      <div class="track-row">
+        <div class="track-name"><span class="track-dot" style="background:var(--c-clap)"></span>Clap</div>
+        <button class="mute-btn">M</button>
+        <div class="arts"></div>
+        <div class="steps">
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        </div>
+        <div class="track-vol"><input type="range" value="80"></div>
+      </div>
+      <!-- HI-HAT -->
+      <div class="track-row">
+        <div class="track-name"><span class="track-dot" style="background:var(--c-hh)"></span>Hi-Hat</div>
+        <button class="mute-btn">M</button>
+        <div class="arts">
+          <button class="art-chip active" title="Half-open">½</button>
+          <button class="art-chip" title="Open">o</button>
+          <button class="art-chip" title="Foot close">f</button>
+          <button class="art-chip" title="Open then closed">◐</button>
+        </div>
+        <div class="steps">
+          <div class="step on" style="background:var(--c-hh);color:var(--c-hh)"></div><div class="step"></div><div class="step on" style="background:var(--c-hh);color:var(--c-hh)"></div><div class="step"></div>
+          <div class="step on" style="background:var(--c-hh);color:var(--c-hh)"></div><div class="step"></div><div class="step on" style="background:var(--c-hh);color:var(--c-hh)"></div><div class="step"></div>
+          <div class="step on" style="background:var(--c-hh);color:var(--c-hh)"></div><div class="step"></div><div class="step on" style="background:var(--c-hh);color:var(--c-hh)"></div><div class="step"></div>
+          <div class="step on" style="background:var(--c-hh);color:var(--c-hh)"></div><div class="step"></div><div class="step on" style="background:var(--c-hh);color:var(--c-hh)"></div><div class="step"></div>
+        </div>
+        <div class="track-vol"><input type="range" value="80"></div>
+      </div>
+      <!-- RIDE -->
+      <div class="track-row">
+        <div class="track-name"><span class="track-dot" style="background:var(--c-ride)"></span>Ride</div>
+        <button class="mute-btn">M</button>
+        <div class="arts">
+          <button class="art-chip" title="Ride bell">B</button>
+        </div>
+        <div class="steps">
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        </div>
+        <div class="track-vol"><input type="range" value="80"></div>
+      </div>
+      <!-- TOM -->
+      <div class="track-row">
+        <div class="track-name"><span class="track-dot" style="background:var(--c-tom)"></span>Tom</div>
+        <button class="mute-btn">M</button>
+        <div class="arts"></div>
+        <div class="steps">
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        </div>
+        <div class="track-vol"><input type="range" value="50"></div>
+      </div>
+      <!-- CRASH -->
+      <div class="track-row">
+        <div class="track-name"><span class="track-dot" style="background:var(--c-crash)"></span>Crash</div>
+        <button class="mute-btn">M</button>
+        <div class="arts"></div>
+        <div class="steps">
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        </div>
+        <div class="track-vol"><input type="range" value="30"></div>
+      </div>
+      <!-- COWBELL -->
+      <div class="track-row">
+        <div class="track-name"><span class="track-dot" style="background:var(--c-cowbell)"></span>Cowbell</div>
+        <button class="mute-btn">M</button>
+        <div class="arts"></div>
+        <div class="steps">
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+          <div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        </div>
+        <div class="track-vol"><input type="range" value="42"></div>
+      </div>
+    </div>
+    </div>
+
+  </div><!-- /grid-zone -->
+
+  <!-- ===== BOTTOM CONSOLE: live pads + settings tabs side by side ===== -->
+  <div class="bottom-console">
+    <!-- ===== LIVE PAD STRIP ===== -->
+    <div class="live-strip">
+      <div class="strip-title">Live patterns — click or press key</div>
+      <div class="pad-rows">
+        <div class="pad-row">
+          <div class="pad-group">
+            <span class="g-lbl">Hi-Hat</span>
+            <button class="pad">Closed <span class="keycap">Q</span></button>
+            <button class="pad">Disco <span class="keycap">W</span></button>
+            <button class="pad">Open 16ths <span class="keycap">E</span></button>
+            <button class="pad">→ Ride <span class="keycap">R</span></button>
+          </div>
+          <div class="pad-group">
+            <span class="g-lbl">Kick</span>
+            <button class="pad">Standard <span class="keycap">A</span></button>
+            <button class="pad">Double <span class="keycap">S</span></button>
+            <button class="pad">Half <span class="keycap">D</span></button>
+            <button class="pad">Four/Floor <span class="keycap">F</span></button>
+            <button class="pad">Double on 3 <span class="keycap">G</span></button>
+            <button class="pad">Syncope 11 <span class="keycap">H</span></button>
+          </div>
+        </div>
+        <div class="pad-row">
+          <div class="pad-group">
+            <span class="g-lbl">Accent</span>
+            <button class="pad">Syncope <span class="keycap">Z</span></button>
+            <button class="pad">Ghost Snare <span class="keycap">X</span></button>
+            <button class="pad">Clap 2&amp;4 <span class="keycap">C</span></button>
+            <button class="pad">Snare +1 <span class="keycap">J</span></button>
+            <button class="pad">Snare +3 <span class="keycap">K</span></button>
+            <button class="pad active">Broken <span class="keycap">T</span></button>
+          </div>
+          <div class="pad-group">
+            <span class="g-lbl">Fills</span>
+            <button class="pad fill">Rock <span class="keycap">SPACE</span></button>
+            <button class="pad fill">Short <span class="keycap">V</span></button>
+            <button class="pad fill">Tom Roll <span class="keycap">B</span></button>
+            <button class="pad fill">Funk <span class="keycap">N</span></button>
+            <button class="pad momentary">Drop (hold) <span class="keycap">M</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- ===== SIDE PANEL: 3 TABS ===== -->
+  <aside class="side">
+    <div class="tabs">
+      <button class="tab active" data-tab="groove">Groove</button>
+      <button class="tab" data-tab="mix">Mix</button>
+      <button class="tab" data-tab="setup">Setup</button>
+    </div>
+
+    <!-- GROOVE -->
+    <div class="tab-body active" id="tab-groove">
+      <div>
+        <h4>Feel</h4>
+        <div class="feel-group">
+          <select>
+            <optgroup label="Neutral"><option>Straight (Machine)</option><option selected>Human Loose</option></optgroup>
+            <optgroup label="Behind the beat"><option>Dilla / Drunk</option><option>Boom Bap Golden</option><option>Bonham Drag</option><option>Motown Lay-back</option><option>Reggae One Drop</option></optgroup>
+            <optgroup label="Pushing"><option>Purdie Push</option><option>Disco Rush</option><option>Punk Speed</option></optgroup>
+            <optgroup label="Complex"><option>Afrobeat (Tony Allen)</option><option>NOLA Second Line</option><option>Jazz Shuffle</option></optgroup>
+          </select>
+          <div class="krow">
+            <span class="lbl">Intensity</span>
+            <input type="range" min="0" max="300" value="199">
+            <span class="val">199%</span>
+          </div>
+          <div class="hint">Subtle static offsets — simulates a good session drummer.</div>
+        </div>
+      </div>
+      <div>
+        <h4>Random</h4>
+        <div class="krow" style="margin-bottom:7px">
+          <span class="lbl">Humanize</span>
+          <input type="range" min="0" max="100" value="100">
+          <span class="val">100%</span>
+        </div>
+        <div class="krow">
+          <span class="lbl">Chaos</span>
+          <input type="range" min="0" max="100" value="100">
+          <span class="val">100%</span>
+        </div>
+      </div>
+      <button class="side-btn">Reset groove</button>
+    </div>
+
+    <!-- MIX -->
+    <div class="tab-body" id="tab-mix">
+      <div>
+        <h4>Kit</h4>
+        <div class="kit-seg">
+          <button class="kit-btn active">Acoustic</button>
+          <button class="kit-btn">Electronic</button>
+          <button class="kit-btn">Studio</button>
+          <button class="kit-btn">Samples</button>
+        </div>
+      </div>
+      <div>
+        <h4>Master</h4>
+        <div class="krow">
+          <span class="lbl">Volume</span>
+          <input type="range" min="0" max="100" value="80">
+          <span class="val">80</span>
+        </div>
+      </div>
+      <div class="mix-track-vols">
+        <h4>Track volumes</h4>
+        <div class="krow"><span class="lbl" style="color:var(--c-kick)">Kick</span><input type="range" value="80"><span class="val">80</span></div>
+        <div class="krow"><span class="lbl" style="color:var(--c-snare)">Snare</span><input type="range" value="70"><span class="val">70</span></div>
+        <div class="krow"><span class="lbl" style="color:var(--c-clap)">Clap</span><input type="range" value="80"><span class="val">80</span></div>
+        <div class="krow"><span class="lbl" style="color:var(--c-hh)">Hi-Hat</span><input type="range" value="80"><span class="val">80</span></div>
+        <div class="krow"><span class="lbl" style="color:var(--c-ride)">Ride</span><input type="range" value="80"><span class="val">80</span></div>
+        <div class="krow"><span class="lbl" style="color:var(--c-tom)">Tom</span><input type="range" value="50"><span class="val">50</span></div>
+        <div class="krow"><span class="lbl" style="color:var(--c-crash)">Crash</span><input type="range" value="30"><span class="val">30</span></div>
+        <div class="krow"><span class="lbl" style="color:var(--c-cowbell)">Cowbell</span><input type="range" value="42"><span class="val">42</span></div>
+      </div>
+      <div class="hint">On desktop, per-track volumes sit at the right of each grid row.</div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="tab-body" id="tab-setup">
+      <div>
+        <h4>Options</h4>
+        <div style="display:flex;flex-direction:column;gap:9px;margin-top:6px">
+          <div class="toggle-row"><span class="sw"></span><span class="t-lbl">Count-in (1 bar)</span></div>
+          <div class="toggle-row"><span class="sw"></span><span class="t-lbl">Metronome</span></div>
+          <div class="toggle-row on"><span class="sw"></span><span class="t-lbl">Record to MIDI</span></div>
+          <div class="toggle-row on"><span class="sw"></span><span class="t-lbl">HH CC#4 (EZDrummer+)</span></div>
+        </div>
+      </div>
+      <div>
+        <h4>A/V sync</h4>
+        <div class="krow">
+          <span class="lbl">Offset</span>
+          <input type="range" min="-200" max="500" value="0">
+          <span class="val">0ms</span>
+        </div>
+        <div class="hint">Positive = marker later. Negative = marker earlier. Saved per browser.</div>
+      </div>
+      <div>
+        <h4>Controller</h4>
+        <button class="side-btn" id="open-midi">⚙ MIDI Setup</button>
+        <div class="status-chip" style="margin-top:7px"><span style="width:6px;height:6px;border-radius:50%;background:var(--ink-faint)"></span> Not connected</div>
+        <div class="status-chip" style="margin-top:5px"><span class="rec-dot"></span> Recorded 895 hits</div>
+      </div>
+    </div>
+  </aside>
+  </div><!-- /bottom-console -->
+</div>
+
+<!-- ================= STATUS BAR ================= -->
+<div class="statusbar">
+  <span>● Stopped</span>
+  <span class="keys"><span>SPACE</span> Rock · <span>V</span> Short · <span>B</span> Tom · <span>N</span> Funk · <span>M</span> Drop</span>
+</div>
+
+<!-- ================= MIDI MODAL (static preview) ================= -->
+<div class="modal-back" id="midi-modal">
+  <div class="modal">
+    <h3>MIDI Controller Setup</h3>
+    <div>
+      <h4>Input device</h4>
+      <div style="display:flex;gap:6px;margin-top:5px">
+        <select style="flex:1"><option>— No device —</option><option>nanoKONTROL2</option></select>
+        <button class="side-btn" style="width:auto">Refresh</button>
+      </div>
+    </div>
+    <div>
+      <h4>Mappings</h4>
+      <div class="hint" style="margin:4px 0 7px">Click a function, then move a control on your device.</div>
+      <div class="map-list">
+        <div class="map-row"><span class="fn">Play / Stop</span><span class="src">CC 41</span></div>
+        <div class="map-row"><span class="fn">Fill: Rock</span><span class="src">Note 36</span></div>
+        <div class="map-row"><span class="fn">BPM</span><span class="src">CC 1 (slider)</span></div>
+        <div class="map-row"><span class="fn">Pad: Broken</span><span class="src">—</span></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="side-btn" style="width:auto">Clear all</button>
+      <button class="side-btn" style="width:auto" id="close-midi">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Mockup-only interactions: tabs, modal, cosmetic pad toggles. No app logic.
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.tab-body').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+}));
+document.getElementById('open-midi').addEventListener('click', () => document.getElementById('midi-modal').classList.add('open'));
+document.getElementById('close-midi').addEventListener('click', () => document.getElementById('midi-modal').classList.remove('open'));
+document.querySelectorAll('.pad:not(.fill):not(.momentary)').forEach(p => p.addEventListener('click', () => p.classList.toggle('active')));
+document.querySelectorAll('.mute-btn').forEach(b => b.addEventListener('click', () => b.classList.toggle('muted')));
+document.querySelectorAll('.art-chip').forEach(c => c.addEventListener('click', () => {
+  c.parentElement.querySelectorAll('.art-chip').forEach(x => x.classList.remove('active'));
+  c.classList.toggle('active');
+}));
+</script>
+</body>
+</html>
