@@ -1,0 +1,26 @@
+GroovyGroova Box
+================
+
+Copyright (c) 2026 Gael Duval
+
+This work is free. You can redistribute it and/or modify it under the
+terms of the Do What The Fuck You Want To Public License, Version 2,
+as published by Sam Hocevar. See the LICENSE file, or
+http://www.wtfpl.net/ for more details.
+
+GroovyGroova Box is an original concept by Gael Duval, developed since
+May 2026 and first published on 11 September 2026.
+
+
+SCOPE OF THE LICENSE
+--------------------
+
+The WTFPL in LICENSE covers the GroovyGroova Box code and documentation
+only.
+
+The sample kits in kits/, and the copies of them embedded in
+dist/index.html, are third-party material under their own separate
+licenses. The WTFPL does not, and cannot, override those licenses: some
+of them carry attribution and share-alike obligations.
+
+See README.md, "Credits and licenses", for the per-kit details.

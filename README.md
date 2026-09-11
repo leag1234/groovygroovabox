@@ -116,6 +116,8 @@ src/groovygroovabox.html Source, single file, no samples
 tools/inject_samples.py  Sample kit injector
 kits/                    The sample kits used to build dist/
 docs/mockups/            UI mockups (desktop and mobile redesign)
+LICENSE                  WTFPL v2, verbatim
+NOTICE                   Copyright, authorship and license scope
 ```
 
 ---
@@ -127,7 +129,8 @@ docs/mockups/            UI mockups (desktop and mobile redesign)
 implementation: Gaël Duval.
 
 Code and documentation: **WTFPL** — Do What The Fuck You Want To Public
-License, Version 2 (see [`LICENSE`](LICENSE)). Do what the fuck you want to.
+License, Version 2 (see [`LICENSE`](LICENSE), and [`NOTICE`](NOTICE) for the
+copyright statement and the scope of the license). Do what the fuck you want to.
 
 The sample kits are **not** covered by the WTFPL. They are third-party
 material, each under its own license, and some carry obligations the WTFPL
