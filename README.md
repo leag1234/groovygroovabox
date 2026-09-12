@@ -30,6 +30,7 @@ An original concept by **Gaël Duval**, developed since **May 2026**. First publ
 - **Humanize**: per-hit random jitter on timing and velocity, re-rolled on every hit
 - **Chaos**: macro-rhythmic randomness (surprise ghost notes, dropped or displaced hits, stutters, rim swaps). Above 40 %, it also carves **structured breaks** into the groove: a 4-bar pause plan is drawn, locked and repeated twice before changing, so holes sound arranged rather than accidental. The silenced zone is dimmed on the grid as the break becomes audible.
 - Essential hits (downbeat kick, backbeat snare) are never randomized away.
+- **Kick spacing guard**: Chaos and Broken each decide per step, so left alone they stack displaced kicks and stutters into machine-gun rolls. A kick sitting where the pattern put it always plays; only kicks that randomness added or moved can be refused, and only when they would crowd what is already scheduled. A double stays available, a triple does not. Deliberate rolls — fills and wildcard gestures — never go through this and are untouched.
 
 ### Sounds: 12 kits
 - **3 synthesized kits**: Acoustic (wood, skins and air), Electronic (808/909 lineage) and Studio (gated, saturated). Cymbals are built from noise resonators rather than oscillators, so they never collapse into a tone.

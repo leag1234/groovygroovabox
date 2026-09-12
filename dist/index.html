@@ -4002,6 +4002,41 @@ const FILLS = {
   },
 };
 
+// ---- KICK SPACING GUARD ----
+// Chaos and Broken each decide per step, independently, with no memory of what
+// was just scheduled. Left alone they stack: a displaced kick, its stutter and
+// the next step's kick can land inside one step — a machine-gun roll, or even
+// two hits at the same instant.
+//
+// The rule: a kick sitting where the pattern put it ALWAYS plays (protected).
+// Only kicks that randomness added or moved can be refused, and only when they
+// would crowd what is already scheduled. A double stays available; a triple
+// does not. Deliberate rolls (fills, wildcard gestures) never come through
+// here, so they are untouched.
+const KICK_MIN_GAP_STEPS = 0.45;      // closer than this, two kicks flam
+const KICK_BURST_WINDOW_STEPS = 2.0;  // window the burst cap looks at
+const KICK_BURST_MAX = 2;             // a double is musical, a triple is not
+let recentKickTimes = [];
+
+function resetKickGuard() { recentKickTimes = []; }
+
+// Schedule a kick from the pattern/chaos/broken path.
+// protect: this hit is structural (pattern position, not displaced by chaos)
+// and is never refused — it still registers, so later random hits yield to it.
+function scheduleGroovedKick(time, accent, art, protect) {
+  const step = stepDuration();
+  recentKickTimes = recentKickTimes.filter(t => Math.abs(time - t) < KICK_BURST_WINDOW_STEPS * step);
+  if (!protect) {
+    for (const t of recentKickTimes) {
+      if (Math.abs(time - t) < KICK_MIN_GAP_STEPS * step) return false;
+    }
+    if (recentKickTimes.length >= KICK_BURST_MAX) return false;
+  }
+  play('kick', time, accent, {}, art);
+  recentKickTimes.push(time);
+  return true;
+}
+
 // Crash + kick that lands on the "1" after any fill
 function playFillResolve(time) {
   play('crash', time, false, {}, 'normal');
@@ -4207,38 +4242,59 @@ function scheduleStep(stepIndex, time) {
   const T = (track) => feelTime(track, stepIndex, time);
 
   // ---- KICK ----
-  let kickArt = stepArt('kick', stepIndex);
-  if (alt.has('kick-double') && stepIndex % 2 === 0) kickArt = 'normal';
-  if (alt.has('kick-half')) kickArt = (stepIndex === 0 || stepIndex === 8) ? 'normal' : null;
-  if (alt.has('kick-four')) kickArt = isBeat ? 'normal' : null;
-  // Double on 3: extra kick on step 2 (position 3 of 16)
-  if (alt.has('kick-on3') && stepIndex === 2) kickArt = kickArt || 'normal';
-  // Syncope 11: move kick from step 8 (position 9) to step 10 (position 11)
-  if (alt.has('kick-sync11')) {
-    if (stepIndex === 8) kickArt = null;
-    if (stepIndex === 10) kickArt = kickArt || 'normal';
-  }
+  // Effective kick at a step: the pattern plus whatever the kick pads add or
+  // remove. Written as a function of the step so it can also look ahead —
+  // the chaos stutter needs to know a kick is already coming, and the pads
+  // create kicks the raw pattern does not show.
+  const kickArtAt = (idx) => {
+    let art = stepArt('kick', idx);
+    if (alt.has('kick-double') && idx % 2 === 0) art = 'normal';
+    if (alt.has('kick-half')) art = (idx === 0 || idx === 8) ? 'normal' : null;
+    if (alt.has('kick-four')) art = (idx % 4 === 0) ? 'normal' : null;
+    // Double on 3: extra kick on step 2 (position 3 of 16)
+    if (alt.has('kick-on3') && idx === 2) art = art || 'normal';
+    // Syncope 11: move kick from step 8 (position 9) to step 10 (position 11)
+    if (alt.has('kick-sync11')) {
+      if (idx === 8) art = null;
+      if (idx === 10) art = art || 'normal';
+    }
+    return art;
+  };
+  let kickArt = kickArtAt(stepIndex);
   if (kickArt && !replaced.has('kick')) {
     let kickTime = T('kick');
     let playKick = true;
+    let displaced = false;
     // BROKEN: displace every non-downbeat kick on even steps by a half-step
     // (lands "between" 16ths — the signature 2000s R&B/Darkchild syncopation).
     if (alt.has('broken') && stepIndex !== 0 && stepIndex % 2 === 0) {
       kickTime += stepDuration() * 0.5;
+      displaced = true;
     }
-    // CHAOS: occasionally displace a non-downbeat kick by a half-step...
-    if (stepIndex !== 0 && chaosP(0.30)) {
+    // CHAOS: occasionally displace a non-downbeat kick by a half-step.
+    // Never on top of the Broken shift: the two would add up to a full step
+    // and drop the kick exactly on the next step's kick.
+    if (!displaced && stepIndex !== 0 && chaosP(0.30)) {
       kickTime += stepDuration() * 0.5;
+      displaced = true;
     }
     // ...or drop it entirely (never the downbeat)
     if (stepIndex !== 0 && chaosP(0.30)) {
       playKick = false;
     }
     if (playKick) {
-      play('kick', kickTime, isBeat, {}, kickArt);
-      // CHAOS: occasional kick stutter — a fast double half a step later
-      if (chaosP(0.12)) {
-        play('kick', kickTime + stepDuration() * 0.5, false, {}, kickArt);
+      // A kick still on its grid position is structural and always plays.
+      const onGrid = kickTime === T('kick');
+      const sounded = scheduleGroovedKick(kickTime, isBeat, kickArt, onGrid);
+      // CHAOS: occasional kick stutter — a fast double half a step later.
+      // Skipped when a kick is already coming within the next two steps:
+      // otherwise the displaced kick, its stutter and that next kick line up
+      // into a three-hit roll. Two steps because the kick pads can put one
+      // every other step, which is exactly when rolls used to pile up.
+      const kickComingSoon = !!kickArtAt((stepIndex + 1) % 16) ||
+                             !!kickArtAt((stepIndex + 2) % 16);
+      if (sounded && !kickComingSoon && chaosP(0.12)) {
+        scheduleGroovedKick(kickTime + stepDuration() * 0.5, false, kickArt, false);
       }
     }
   }
@@ -4246,7 +4302,7 @@ function scheduleStep(stepIndex, time) {
   // if the pattern doesn't already have kicks there — fills the syncopated pocket.
   if (alt.has('broken') && state.brokenPhase && stepIndex === 6 &&
       !stepArt('kick', 6) && !stepArt('kick', 7) && !replaced.has('kick')) {
-    play('kick', T('kick') + stepDuration() * 0.5, false, {}, 'normal');
+    scheduleGroovedKick(T('kick') + stepDuration() * 0.5, false, 'normal', false);
   }
 
   // ---- SNARE ----
@@ -4428,6 +4484,7 @@ async function startPlaying() {
   }
   // Keep-alive must be running before we schedule anything (see definition)
   startAudioKeepAlive();
+  resetKickGuard();
   // Debug: log the audio context's reported latency so the user can
   // diagnose A/V sync issues. Open the browser console to see these.
   if (!ctx._loggedLatency) {
@@ -4526,6 +4583,7 @@ async function startPlaying() {
 function stopPlaying() {
   if (!state.playing) return;
   state.playing = false;
+  resetKickGuard();
   if (schedulerId) clearInterval(schedulerId);
   schedulerId = null;
   visualQueue = [];
