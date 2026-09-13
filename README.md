@@ -79,18 +79,19 @@ Any articulation a sampled kit lacks falls back to a matching synth kit, so ever
 
 ## Getting started
 
-- **Download the app**: [`dist/index.html`](dist/index.html) is the whole thing — one self-contained
-  file, all 9 sampled kits embedded, about 12 MB. On that page use GitHub's
-  **Download raw file** button (the download icon, top right of the file view). Opening the
-  raw link directly will show you 12 MB of source instead: GitHub serves `.html` as
-  `text/plain`, so the browser displays it rather than saving it. From a terminal:
+- **Download the app**: grab
+  **[groovygroovabox.html from the latest release](https://github.com/leag1234/groovygroovabox/releases/latest)**
+  — one self-contained file, all 12 kits embedded, about 12 MB. Open it in any modern
+  browser: no install, no server, works offline. Deploying it to a site? Rename it to
+  `index.html`.
+
+  The same file lives in the repository at [`dist/index.html`](dist/index.html), but note
+  that GitHub serves `.html` as `text/plain`, so the raw link displays the source instead
+  of saving it. The release asset downloads properly; from a terminal, either works:
 
   ```bash
-  curl -L -o groovygroovabox.html https://raw.githubusercontent.com/leag1234/groovygroovabox/main/dist/index.html
+  curl -L -O https://github.com/leag1234/groovygroovabox/releases/latest/download/groovygroovabox.html
   ```
-
-- **Just play**: open the downloaded file in a modern browser (Chrome, Firefox, Safari, Edge).
-  No install, no server, works offline.
 - **Lightweight**: [`src/groovygroovabox.html`](src/groovygroovabox.html) is the same app without embedded samples (synth kits only, about 200 KB).
 - **On iPhone**: tap once anywhere before pressing Play (browser audio policy). If the phone is on silent mode, the app switches the audio session to playback so sound still comes out.
 
