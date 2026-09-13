@@ -79,7 +79,18 @@ Any articulation a sampled kit lacks falls back to a matching synth kit, so ever
 
 ## Getting started
 
-- **Just play**: open [`dist/index.html`](dist/index.html) in a modern browser (Chrome, Firefox, Safari, Edge). It embeds all 9 sampled kits (about 12 MB).
+- **Download the app**: [`dist/index.html`](dist/index.html) is the whole thing — one self-contained
+  file, all 9 sampled kits embedded, about 12 MB. On that page use GitHub's
+  **Download raw file** button (the download icon, top right of the file view). Opening the
+  raw link directly will show you 12 MB of source instead: GitHub serves `.html` as
+  `text/plain`, so the browser displays it rather than saving it. From a terminal:
+
+  ```bash
+  curl -L -o groovygroovabox.html https://raw.githubusercontent.com/leag1234/groovygroovabox/main/dist/index.html
+  ```
+
+- **Just play**: open the downloaded file in a modern browser (Chrome, Firefox, Safari, Edge).
+  No install, no server, works offline.
 - **Lightweight**: [`src/groovygroovabox.html`](src/groovygroovabox.html) is the same app without embedded samples (synth kits only, about 200 KB).
 - **On iPhone**: tap once anywhere before pressing Play (browser audio policy). If the phone is on silent mode, the app switches the audio session to playback so sound still comes out.
 
