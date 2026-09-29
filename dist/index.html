@@ -1102,7 +1102,15 @@
      shove the dropdown sideways. */
   .bank-icon.slot-hidden { visibility: hidden; }
 
-  #bank-select { flex: 1; min-width: 0; }
+  #bank-select, #take-select { flex: 1; min-width: 0; }
+  .takes-stack { width: 268px; }
+  #take-rec.armed  { color: var(--accent-2); border-color: var(--accent-2); }
+  #take-rec.recording {
+    color: var(--red);
+    border-color: var(--red);
+    animation: takepulse 1s ease-in-out infinite;
+  }
+  @keyframes takepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
   #bank-select:disabled { opacity: 0.45; }
 
   /* ---------- SEQUENCER: full width ---------- */
@@ -1528,7 +1536,7 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
       <button class="sw-btn active" id="sw-nextbar" data-mode="nextbar">Next bar</button>
     </div>
     <div class="bank">
-      <span class="pb-lbl">Bank</span>
+      <span class="pb-lbl">Setup</span>
       <div class="bank-stack">
         <div class="bank-row">
           <button class="bank-btn" id="bank-add"
@@ -1542,6 +1550,25 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
           <select id="bank-select" title="Recall a saved entry with all its settings"></select>
           <button class="bank-icon danger slot-hidden" id="bank-del"
                   title="Delete the selected entry">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="bank">
+      <span class="pb-lbl">Takes</span>
+      <div class="bank-stack takes-stack">
+        <div class="bank-row">
+          <button class="bank-btn" id="take-rec"
+                  title="Record 4 bars exactly as they play — chaos, pads and all. Starts at the next bar.">● Record 4 bars</button>
+          <input type="text" id="take-name" maxlength="40" hidden
+                 title="Name this take — leave it as it is to keep the suggestion">
+          <button class="bank-icon" id="take-save" title="Save" hidden>✓</button>
+          <button class="bank-icon" id="take-discard" title="Discard" hidden>✕</button>
+        </div>
+        <div class="bank-row">
+          <select id="take-select" title="Recorded takes"></select>
+          <button class="bank-icon slot-hidden" id="take-play" title="Play this take on a loop">▶</button>
+          <button class="bank-icon slot-hidden" id="take-midi" title="Download this take as a MIDI file">♪</button>
+          <button class="bank-icon danger slot-hidden" id="take-del" title="Delete this take">✕</button>
         </div>
       </div>
     </div>
@@ -2713,6 +2740,333 @@ function requestPatternChange(patternId) {
     state.queuedPattern = patternId;
     setPatternStatus(`Queued: ${PATTERNS[patternId].name}`);
   }
+}
+
+// ============================================================
+// TAKES — four recorded bars, replayable and exportable
+// ============================================================
+// A setup stores the conditions; a take stores what actually came out. Chaos
+// rolls its figures, you press pads, and a take keeps that performance — all
+// eight tracks, frozen.
+//
+// Events are stored in MUSICAL time: the position in steps from the top of
+// the take, not in seconds. So a take follows whatever tempo it is replayed
+// at, and MIDI export converts steps to ticks directly.
+
+const TAKES_KEY = 'groovygroova:takes';
+const TAKE_VERSION = 1;
+const TAKE_BARS = 4;
+
+// Recording: null, or { phase, startTime, stepDur, events }
+let takeRec = null;
+// Playback: null, or { events, pos, bars }
+let takePlay = null;
+
+function takeIsRecording() { return !!takeRec && takeRec.phase === 'recording'; }
+function takeIsArmed()     { return !!takeRec && takeRec.phase === 'armed'; }
+function takeIsPlaying()   { return !!takePlay; }
+
+// Arm. Recording starts at the top of the next bar so a take always begins on
+// a bar line — the same handoff the setup recall uses.
+function takeArm() {
+  if (takePlay) takeStopPlayback();
+  takeRec = { phase: 'armed', startTime: 0, stepDur: stepDuration(), events: [] };
+  takeUpdateUI();
+  setPatternStatus(`Armed — recording ${TAKE_BARS} bars at the next bar`);
+}
+
+function takeCancel() {
+  takeRec = null;
+  takeUpdateUI();
+  setPatternStatus('');
+}
+
+// Called at step 0. Returns nothing; drives the arm -> record -> done cycle.
+function takeBarBoundary(time) {
+  if (!takeRec) return;
+  if (takeRec.phase === 'armed') {
+    takeRec.phase = 'recording';
+    takeRec.startTime = time;
+    takeRec.stepDur = stepDuration();
+    takeRec.barsLeft = TAKE_BARS;
+    takeRec.events = [];
+    takeUpdateUI();
+    return;
+  }
+  if (takeRec.phase === 'recording') {
+    takeRec.barsLeft--;
+    if (takeRec.barsLeft <= 0) {
+      const events = takeRec.events;
+      takeRec = null;
+      takeUpdateUI();
+      // Hand over on the main thread, once the audio for the last bar is out
+      const delayMs = Math.max(0, (time - ctx.currentTime) * 1000);
+      setTimeout(() => takeFinish(events), delayMs);
+    } else {
+      takeUpdateUI();
+    }
+  }
+}
+
+// One hit, captured at its position in steps from the top of the take.
+function takeCapture(track, time, accent, opts, art) {
+  if (!takeIsRecording()) return;
+  const s = (time - takeRec.startTime) / takeRec.stepDur;
+  if (s < 0 || s >= TAKE_BARS * STEPS) return;
+  takeRec.events.push({ s: +s.toFixed(4), track, art, accent: !!accent,
+                        pitch: (opts && opts.pitch) || undefined });
+}
+
+function takeFinish(events) {
+  if (!events.length) {
+    setPatternStatus('Take was empty — nothing saved');
+    setTimeout(() => setPatternStatus(''), 2200);
+    return;
+  }
+  takePendingEvents = events;
+  takeOpenNameEditor();
+}
+
+let takePendingEvents = null;
+
+// ---- storage ----
+function takesRead() {
+  try {
+    const list = JSON.parse(localStorage.getItem(TAKES_KEY) || '[]');
+    return Array.isArray(list) ? list.filter(t => t && t.v === TAKE_VERSION) : [];
+  } catch (err) { return []; }
+}
+
+function takesWrite(list) {
+  try { localStorage.setItem(TAKES_KEY, JSON.stringify(list)); return true; }
+  catch (err) {
+    setPatternStatus('Takes storage full \u2014 delete one');
+    return false;
+  }
+}
+
+function takeSuggestName() {
+  const base = (PATTERNS[state.currentPattern] || {}).name || 'Take';
+  const stem = `${base} take`;
+  const taken = new Set(takesRead().map(t => t.name));
+  if (!taken.has(stem)) return stem;
+  let n = 2;
+  while (taken.has(`${stem} ${n}`)) n++;
+  return `${stem} ${n}`;
+}
+
+function takeSave(name, events) {
+  const list = takesRead();
+  const entry = {
+    v: TAKE_VERSION,
+    id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name,
+    created: Date.now(),
+    bars: TAKE_BARS,
+    bpm: state.bpm,
+    kit: state.kit,
+    events,
+  };
+  list.push(entry);
+  if (!takesWrite(list)) return null;
+  takesRefreshSelect(entry.id);
+  return entry;
+}
+
+// ---- playback ----
+// Loops until stopped, so a take can be auditioned the way a section would sit
+// in a song.
+function takeStartPlayback(id) {
+  const entry = takesRead().find(t => t.id === id);
+  if (!entry) return;
+  if (takeRec) takeCancel();
+  takePlay = { events: entry.events, bars: entry.bars || TAKE_BARS, pos: 0, name: entry.name };
+  takeUpdateUI();
+  setPatternStatus(`Playing take: ${entry.name}`);
+}
+
+function takeStopPlayback() {
+  takePlay = null;
+  takeUpdateUI();
+  setPatternStatus('');
+}
+
+// Schedule the take's hits that belong to this step. Called from scheduleStep
+// in place of the normal generation.
+function takeScheduleStep(time) {
+  const total = takePlay.bars * STEPS;
+  const k = takePlay.pos;
+  const dur = stepDuration();
+  takePlay.events.forEach(ev => {
+    if (Math.floor(ev.s) !== k) return;
+    const t = time + (ev.s - k) * dur;
+    play(ev.track, t, ev.accent, ev.pitch ? { pitch: ev.pitch } : {}, ev.art);
+  });
+  takePlay.pos = (k + 1) % total;
+}
+
+// ---- MIDI export ----
+function takeExportMidi(id) {
+  const entry = takesRead().find(t => t.id === id);
+  if (!entry) return;
+  const bpm = entry.bpm || state.bpm;
+  const secPerStep = 60 / bpm / 4;          // 16 steps per bar, 4 per beat
+  const duration = entry.bars * STEPS * secPerStep;
+  const tempoMap = [{ time: 0, bpm }];
+
+  const midiEvents = [];
+  entry.events.forEach(ev => {
+    toMidiEvents(ev.track, ev.s * secPerStep, ev.accent,
+                 ev.pitch ? { pitch: ev.pitch } : {}, ev.art)
+      .forEach(m => midiEvents.push(m));
+  });
+  midiEvents.sort((a, b) => a.time - b.time);
+
+  const header = [
+    0x4D, 0x54, 0x68, 0x64,
+    ...uint32(6), ...uint16(1), ...uint16(2), ...uint16(PPQ),
+  ];
+  const allBytes = [
+    ...header,
+    ...trackChunk(buildTempoTrack(tempoMap, duration)),
+    ...trackChunk(buildDrumTrack(midiEvents, tempoMap, duration, state.cc4Export)),
+  ];
+
+  const blob = new Blob([bytesToU8(allBytes)], { type: 'audio/midi' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = entry.name.replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') + '.mid';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ---- takes UI ----
+function takesRefreshSelect(selectId) {
+  const sel = document.getElementById('take-select');
+  if (!sel) return;
+  const list = takesRead();
+  if (!list.length) {
+    sel.innerHTML = '<option value="">\u2014 no takes \u2014</option>';
+    sel.disabled = true;
+  } else {
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">\u2014 takes \u2014</option>' +
+      list.map(t => `<option value="${t.id}">${t.name.replace(/[<>&]/g, '')}</option>`).join('');
+    if (selectId) sel.value = selectId;
+  }
+  takeUpdateUI();
+}
+
+function takeUpdateUI() {
+  const sel = document.getElementById('take-select');
+  const rec = document.getElementById('take-rec');
+  const playBtn = document.getElementById('take-play');
+  if (!sel || !rec) return;
+
+  const hasSel = !!sel.value;
+  ['take-play', 'take-midi', 'take-del'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('slot-hidden', !hasSel);
+  });
+
+  rec.classList.toggle('armed', takeIsArmed());
+  rec.classList.toggle('recording', takeIsRecording());
+  if (takeIsArmed()) rec.textContent = '\u25cf Armed\u2026';
+  else if (takeIsRecording()) {
+    const done = TAKE_BARS - (takeRec.barsLeft || 0) + 1;
+    rec.textContent = `\u25cf Recording ${Math.min(done, TAKE_BARS)}/${TAKE_BARS}`;
+  } else rec.textContent = '\u25cf Record 4 bars';
+
+  if (playBtn) playBtn.textContent = takeIsPlaying() ? '\u25a0' : '\u25b6';
+}
+
+function takeOpenNameEditor() {
+  const rec = document.getElementById('take-rec');
+  const nameIn = document.getElementById('take-name');
+  const save = document.getElementById('take-save');
+  const discard = document.getElementById('take-discard');
+  if (!nameIn) return;
+  nameIn.value = takeSuggestName();
+  [nameIn, save, discard].forEach(el => { if (el) el.hidden = false; });
+  if (rec) rec.hidden = true;
+  nameIn.focus();
+  nameIn.select();
+  setPatternStatus(`${TAKE_BARS} bars captured \u2014 name it`);
+}
+
+function takeCloseNameEditor() {
+  const rec = document.getElementById('take-rec');
+  ['take-name', 'take-save', 'take-discard'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = true;
+  });
+  if (rec) rec.hidden = false;
+  takePendingEvents = null;
+  setPatternStatus('');
+}
+
+function bindTakes() {
+  const rec = document.getElementById('take-rec');
+  const nameIn = document.getElementById('take-name');
+  const saveBtn = document.getElementById('take-save');
+  const discardBtn = document.getElementById('take-discard');
+  const sel = document.getElementById('take-select');
+  const playBtn = document.getElementById('take-play');
+  const midiBtn = document.getElementById('take-midi');
+  const delBtn = document.getElementById('take-del');
+  if (!rec || !sel) return;
+
+  rec.addEventListener('click', () => {
+    if (takeRec) { takeCancel(); return; }        // second press disarms
+    takeArm();
+  });
+
+  const commit = () => {
+    if (!takePendingEvents) { takeCloseNameEditor(); return; }
+    const name = nameIn.value.trim() || takeSuggestName();
+    const events = takePendingEvents;
+    takeCloseNameEditor();
+    if (takeSave(name, events)) {
+      setPatternStatus(`Saved take: ${name}`);
+      setTimeout(() => setPatternStatus(''), 1800);
+    }
+  };
+  if (saveBtn) saveBtn.addEventListener('click', commit);
+  if (discardBtn) discardBtn.addEventListener('click', takeCloseNameEditor);
+  if (nameIn) nameIn.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { e.preventDefault(); takeCloseNameEditor(); }
+  });
+
+  sel.addEventListener('change', () => {
+    if (takeIsPlaying()) takeStopPlayback();
+    takeUpdateUI();
+  });
+
+  if (playBtn) playBtn.addEventListener('click', () => {
+    if (takeIsPlaying()) { takeStopPlayback(); return; }
+    if (!sel.value) return;
+    takeStartPlayback(sel.value);
+    if (!state.playing) startPlaying();
+  });
+
+  if (midiBtn) midiBtn.addEventListener('click', () => {
+    if (sel.value) takeExportMidi(sel.value);
+  });
+
+  if (delBtn) delBtn.addEventListener('click', () => {
+    const id = sel.value;
+    const entry = takesRead().find(t => t.id === id);
+    if (!entry || !window.confirm(`Delete the take "${entry.name}"?`)) return;
+    if (takeIsPlaying()) takeStopPlayback();
+    takesWrite(takesRead().filter(t => t.id !== id));
+    takesRefreshSelect();
+  });
+
+  takesRefreshSelect();
 }
 
 // ============================================================
@@ -4061,6 +4415,9 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   if (currentChaosGate && currentChaosGate(track)) return;
   if (state.mute[track]) return;
   const art = articulation || TRACKS.find(t => t.id === track).articulations[0].id;
+  // Take capture sits here, past the gates and ahead of the sample/synth
+  // split, so every hit that actually sounds is caught exactly once.
+  takeCapture(track, time, accent, opts, art);
   // Synth kit for this hit: the selected synth kit, or a sample kit's fallback
   const kit = KITS[state.kit] || fallbackSynthKit(state.kit);
   let v = state.volume[track];
@@ -4254,16 +4611,15 @@ function playCowbellSynth(time, v=1) {
   n.start(time); n.stop(time + 0.04);
 }
 
-function recordEvent(track, time, accent, opts, articulation) {
-  if (!state.recording) return;
-  if (time < state.recStartTime) return;
-
+// Turn one hit into the MIDI events it stands for, at a time already relative
+// to whatever the caller counts from. Shared by the session recorder and by
+// the take exporter so the two can never disagree about the GM mapping.
+function toMidiEvents(track, relTime, accent, opts, articulation) {
   const mapping = GM_MAP[track] && GM_MAP[track][articulation];
-  if (!mapping) return;
+  if (!mapping) return [];
 
-  // Handle tom pitch variation (fills): override note based on synth pitch
   let note = mapping.note;
-  if (track === 'tom' && opts.pitch) {
+  if (track === 'tom' && opts && opts.pitch) {
     if (opts.pitch < 105) note = 41;
     else if (opts.pitch < 140) note = 45;
     else if (opts.pitch < 170) note = 48;
@@ -4276,12 +4632,11 @@ function recordEvent(track, time, accent, opts, articulation) {
     Math.round(state.volume[track] * baseV * velMul)
   ));
 
-  const relTime = time - state.recStartTime;
+  const out = [];
   const ev = { time: relTime, pitch: note, velocity, track };
   if (mapping.cc4 !== undefined) ev.hhPedal = mapping.cc4;
-  state.recEvents.push(ev);
+  out.push(ev);
 
-  // Articulations with a follow-up note (e.g. open+close → foot close)
   if (mapping.follow) {
     const fEv = {
       time: relTime + mapping.follow.delayS,
@@ -4290,8 +4645,17 @@ function recordEvent(track, time, accent, opts, articulation) {
       track,
     };
     if (mapping.follow.cc4 !== undefined) fEv.hhPedal = mapping.follow.cc4;
-    state.recEvents.push(fEv);
+    out.push(fEv);
   }
+  return out;
+}
+
+function recordEvent(track, time, accent, opts, articulation) {
+  if (!state.recording) return;
+  if (time < state.recStartTime) return;
+
+  toMidiEvents(track, time - state.recStartTime, accent, opts, articulation)
+    .forEach(ev => state.recEvents.push(ev));
 }
 
 // ============================================================
@@ -4520,6 +4884,8 @@ function scheduleStep(stepIndex, time) {
 
   // ---- FILL ACTIVATION ----
   if (stepIndex === 0) {
+    // Take recording: arm -> record -> done, always on a bar line
+    takeBarBoundary(time);
     // Broken mode: alternate phase A / phase B every bar (2-bar cycle)
     state.brokenPhase = !state.brokenPhase;
     // Advance the chaos structural-pause plan (rolls/locks/re-rolls itself)
@@ -4559,6 +4925,14 @@ function scheduleStep(stepIndex, time) {
     } else {
       state.activeFill = null;
     }
+  }
+
+  // ---- TAKE PLAYBACK: the recording replaces everything ----
+  // Frozen material, so nothing below runs: no pattern, no chaos, no pads.
+  if (takePlay) {
+    currentChaosGate = null;
+    takeScheduleStep(time);
+    return;
   }
 
   // ---- WILDCARD BAR: the drawn gesture replaces everything this bar ----
@@ -4925,6 +5299,10 @@ function stopPlaying() {
   if (!state.playing) return;
   state.playing = false;
   resetKickGuard();
+  // An armed take never survives a stop, and a recording in progress is
+  // dropped rather than saved half-finished.
+  if (takeRec) { takeRec = null; takeUpdateUI(); }
+  if (takePlay) takeStopPlayback();
   if (schedulerId) clearInterval(schedulerId);
   schedulerId = null;
   visualQueue = [];
@@ -6190,6 +6568,7 @@ buildSequencer();
 TRACKS.forEach(t => updateArtIndicators(t.id));
 bindControls();
 bindBank();
+bindTakes();
 loadMappings();
 bindMidiUI();
 

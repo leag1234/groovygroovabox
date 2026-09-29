@@ -53,7 +53,13 @@ An original concept by **Gaël Duval**, developed since **May 2026**. First publ
 
 Any articulation a sampled kit lacks falls back to a matching synth kit, so every pattern plays on every kit.
 
-### Pattern bank
+### Takes
+- **Record 4 bars exactly as they play** — the grid, whatever figure Chaos rolled, and the pads you pressed while it ran. Press **● Record 4 bars**: recording arms and starts at the top of the next bar, runs for four, and stops itself. Name it, or keep the suggestion.
+- A take is **frozen**: replaying it plays back those four bars note for note. Nothing is regenerated — empty the grid and set Chaos to 0 and the take is unchanged.
+- From the list: **▶** loops the take, **♪** downloads it as a MIDI file (GM drum map, same writer as the session export), **✕** deletes it.
+- Events are stored in musical time, in steps from the top of the take, so a take follows whatever tempo it is replayed at.
+
+### Setup bank
 - **Save** the grid together with every groove setting: tempo, swing, Feel preset and intensity, Humanize, Chaos, the kit, per-track volume and mutes, and which live pads are engaged. Press **+**, and a field opens pre-filled with a suggested name (`Funk 96`, made unique) — type over it or press Enter to keep it.
 - **Recall** any entry from the dropdown below. It honours the **Now / Next bar** switch, so an entry can land on a bar line instead of mid-phrase.
 - Entries live in the browser's local storage and survive a reload. The A/V calibration offset and the master volume are deliberately *not* stored: they belong to the machine you are listening on, so recalling an entry never changes how loud the box is or how it lines up with the display.
