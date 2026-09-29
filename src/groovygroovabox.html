@@ -1580,7 +1580,7 @@
               <input type="range" class="slider" id="humanize" min="0" max="100" value="0">
               <span class="knob-val" id="humanize-val">0%</span>
             </div>
-            <div class="knob-row feel-knob" title="Chaos: macro-rhythmic randomness — surprise ghost notes, dropped hits, kicks displaced to off-positions. Above 40%, also carves STRUCTURED BREAKS into the groove (2000s R&B style): a 4-bar pause plan is rolled, locked and repeated twice before changing, so holes sound arranged, not accidental. Independent from the Feel preset.">
+            <div class="knob-row feel-knob" title="Chaos: macro-rhythmic randomness — surprise ghost notes, dropped hits, rim swaps, opened hats. The kick is never touched: it is the skeleton, and moving it turns the groove to mush. Above 40%, also carves STRUCTURED BREAKS into the groove (2000s R&B style): a 4-bar pause plan is rolled, locked and repeated twice before changing, so holes sound arranged, not accidental. Independent from the Feel preset.">
               <span class="knob-label">Chaos</span>
               <input type="range" class="slider" id="chaos" min="0" max="100" value="0">
               <span class="knob-val" id="chaos-val">0%</span>
@@ -4245,40 +4245,17 @@ function scheduleStep(stepIndex, time) {
   let kickArt = kickArtAt(stepIndex);
   if (kickArt && !replaced.has('kick')) {
     let kickTime = T('kick');
-    let playKick = true;
-    let displaced = false;
     // BROKEN: displace every non-downbeat kick on even steps by a half-step
     // (lands "between" 16ths — the signature 2000s R&B/Darkchild syncopation).
+    // Deliberate and deterministic: this shift IS the mode, not randomness.
     if (alt.has('broken') && stepIndex !== 0 && stepIndex % 2 === 0) {
       kickTime += stepDuration() * 0.5;
-      displaced = true;
     }
-    // CHAOS: occasionally displace a non-downbeat kick by a half-step.
-    // Never on top of the Broken shift: the two would add up to a full step
-    // and drop the kick exactly on the next step's kick.
-    if (!displaced && stepIndex !== 0 && chaosP(0.30)) {
-      kickTime += stepDuration() * 0.5;
-      displaced = true;
-    }
-    // ...or drop it entirely (never the downbeat)
-    if (stepIndex !== 0 && chaosP(0.30)) {
-      playKick = false;
-    }
-    if (playKick) {
-      // A kick still on its grid position is structural and always plays.
-      const onGrid = kickTime === T('kick');
-      const sounded = scheduleGroovedKick(kickTime, isBeat, kickArt, onGrid);
-      // CHAOS: occasional kick stutter — a fast double half a step later.
-      // Skipped when a kick is already coming within the next two steps:
-      // otherwise the displaced kick, its stutter and that next kick line up
-      // into a three-hit roll. Two steps because the kick pads can put one
-      // every other step, which is exactly when rolls used to pile up.
-      const kickComingSoon = !!kickArtAt((stepIndex + 1) % 16) ||
-                             !!kickArtAt((stepIndex + 2) % 16);
-      if (sounded && !kickComingSoon && chaosP(0.12)) {
-        scheduleGroovedKick(kickTime + stepDuration() * 0.5, false, kickArt, false);
-      }
-    }
+    // Chaos deliberately leaves the kick alone. Displacing it, dropping it or
+    // stuttering it read as rhythmic mush rather than variation: the kick is
+    // the skeleton the ear locks onto, and moving it dissolves the groove.
+    // Randomness belongs on the ornaments — hats, ghost notes, ride.
+    scheduleGroovedKick(kickTime, isBeat, kickArt, true);
   }
   // BROKEN phase A: extra ghost kick on the "a" of beat 2 (between steps 6 and 7)
   // if the pattern doesn't already have kicks there — fills the syncopated pocket.
