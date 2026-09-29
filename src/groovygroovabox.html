@@ -1987,13 +1987,6 @@ function humanVelJitter() {
   return 1 + gaussRand() * 0.25 * (h / 100);
 }
 
-// ---- Chaos: macro-rhythmic randomness ----
-// Returns true with probability p scaled by the chaos amount.
-function chaosP(p) {
-  const c = state.chaos || 0;
-  if (c <= 0) return false;
-  return Math.random() < (c / 100) * p;
-}
 
 // ---- Chaos: STRUCTURAL PAUSES (chaos >= 40%) ----
 // Above 40%, Chaos also carves coherent, artistic breaks into the groove,
@@ -2006,6 +1999,57 @@ const CHAOS_PLAN_REPEATS = 2;
 const CHAOS_PAUSE_THRESHOLD = 40;
 let chaosPlan = null;
 let currentChaosGate = null; // installed by scheduleStep for its own play() calls
+
+// ---- CHAOS: LOCKED VARIATION FIGURES ----
+// chaosP() flips an independent coin per hit, per step, per bar. Nothing ever
+// repeats, so nothing reads as intentional — that is what made high Chaos
+// sound like mush rather than like playing. A figure fixes that: the
+// deviations for one bar are rolled ONCE, locked into the plan, and replayed
+// identically for as long as the plan lives. Same quantity of randomness,
+// but it becomes a motif.
+//
+// Humanize still jitters velocity and micro-timing per hit on top, so a
+// repeated figure never sounds like a copy-paste loop.
+
+// Ghost notes come in idiomatic cells, never as isolated random hits: a
+// pickup into the backbeat, an answer coming off it, or a short run leading
+// back to the one.
+const GHOST_CELLS = [
+  [3], [5], [3, 5],            // around the backbeat on step 4
+  [11], [13], [11, 13],        // around the backbeat on step 12
+  [6, 7], [10, 11], [14, 15],  // runs
+];
+
+// An open hat belongs on an "&", leading into the next beat.
+const HAT_OPEN_STEPS = [2, 6, 10, 14];
+
+// Dropping the time-keeping hand makes space, but only across a whole beat:
+// scattered single drops just sound like a stuttering machine.
+const HAND_DROP_RUNS = [[4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]];
+
+// Phrase shape: a drummer states the groove, then opens up at the end of the
+// phrase. Bar 0 stays nearly clean, the last bar carries most of the motion.
+const PHRASE_WEIGHT = [0.15, 0.45, 0.55, 1.0];
+
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+// Roll the deviations for one bar of the plan. barIdx drives the phrase shape.
+function rollChaosFigure(c, barIdx) {
+  const fig = { ghosts: [], hatOpen: [], handDrop: [], rimSwap: -1 };
+  const amount = (c / 100) * (PHRASE_WEIGHT[barIdx] || 0);
+  if (amount <= 0) return fig;
+  if (Math.random() < amount * 0.85) fig.ghosts = pick(GHOST_CELLS).slice();
+  if (Math.random() < amount * 0.45) fig.hatOpen = [pick(HAT_OPEN_STEPS)];
+  if (Math.random() < amount * 0.30) fig.handDrop = pick(HAND_DROP_RUNS).slice();
+  if (Math.random() < amount * 0.20) fig.rimSwap = pick([0, 4, 8, 12]);
+  return fig;
+}
+
+// The figure for the bar currently playing.
+function activeChaosFigure() {
+  if (!chaosPlan || !chaosPlan.figures) return null;
+  return chaosPlan.figures[state.chaosBarIdx] || null;
+}
 
 function rollChaosPlan(c) {
   const bars = new Array(CHAOS_PLAN_BARS).fill(null);
@@ -2021,7 +2065,9 @@ function rollChaosPlan(c) {
       bars[s] = types[Math.floor(Math.random() * types.length)];
     });
   }
-  return { bars, playsLeft: CHAOS_PLAN_REPEATS };
+  const figures = [];
+  for (let i = 0; i < CHAOS_PLAN_BARS; i++) figures.push(rollChaosFigure(c, i));
+  return { bars, figures, playsLeft: CHAOS_PLAN_REPEATS };
 }
 
 // Advances the plan position; called at the top of every scheduled bar.
@@ -2032,10 +2078,13 @@ function chaosPlanAdvance() {
     if (chaosPlan) chaosPlan.playsLeft--;
     if (!chaosPlan || chaosPlan.playsLeft <= 0) chaosPlan = rollChaosPlan(c);
   }
-  // If chaos just crossed the threshold while the current plan is empty,
-  // re-roll at the next bar instead of waiting up to 8 silent-of-breaks bars.
-  if (c >= CHAOS_PAUSE_THRESHOLD && chaosPlan && chaosPlan.bars.every(b => !b) &&
-      state.chaosBarIdx === 0) {
+  // If Chaos was raised while the current plan is empty, re-roll at the next
+  // bar instead of waiting out up to 8 bars of a plan rolled at a lower value.
+  const planIsEmpty = chaosPlan &&
+    chaosPlan.bars.every(b => !b) &&
+    (!chaosPlan.figures || chaosPlan.figures.every(f =>
+      !f.ghosts.length && !f.hatOpen.length && !f.handDrop.length && f.rimSwap < 0));
+  if (c > 0 && planIsEmpty && state.chaosBarIdx === 0) {
     chaosPlan = rollChaosPlan(c);
   }
 }
@@ -4265,6 +4314,8 @@ function scheduleStep(stepIndex, time) {
   }
 
   // ---- SNARE ----
+  // Locked deviations for this bar (see rollChaosFigure)
+  const fig = activeChaosFigure();
   let snareArt = stepArt('snare', stepIndex);
   if (alt.has('ghost')) {
     if ([2, 6, 10, 14].includes(stepIndex) && Math.random() < 0.6) {
@@ -4275,16 +4326,13 @@ function scheduleStep(stepIndex, time) {
     if (stepIndex === 4 || stepIndex === 12) snareArt = null;
     if (stepIndex === 5 || stepIndex === 13) snareArt = snareArt || 'normal';
   }
-  // CHAOS: surprise ghost notes on empty off-steps
-  if (!snareArt && isOffbeat && chaosP(0.25)) {
+  // CHAOS: ghost notes from this bar's locked figure — an idiomatic cell
+  // around the backbeat, not a coin flip on every empty off-step.
+  if (!snareArt && fig && fig.ghosts.includes(stepIndex)) {
     play('snare', T('snare'), false, {}, 'ghost');
   }
-  // CHAOS: occasionally drop a non-backbeat snare hit
-  if (snareArt && !isBackbeat && chaosP(0.30)) {
-    snareArt = null;
-  }
-  // CHAOS: occasionally swap a normal snare for a rim shot (accent surprise)
-  if (snareArt === 'normal' && chaosP(0.15)) {
+  // CHAOS: rim swap, one fixed step per bar at most
+  if (snareArt === 'normal' && fig && fig.rimSwap === stepIndex) {
     snareArt = 'rim';
   }
   if (snareArt && !replaced.has('snare')) {
@@ -4295,8 +4343,10 @@ function scheduleStep(stepIndex, time) {
     if (alt.has('broken') && !state.brokenPhase && stepIndex === 12) {
       play('snare', st + stepDuration() * 0.5, false, {}, 'ghost');
     }
-    // CHAOS: occasional snare stutter — ghost double half a step later
-    if (chaosP(0.12)) {
+    // CHAOS: chop the backbeat only when this bar's figure answers right
+    // after it — the stutter then belongs to the phrase instead of firing on
+    // its own every dozen hits.
+    if (isBackbeat && fig && fig.ghosts.includes(stepIndex + 1)) {
       play('snare', st + stepDuration() * 0.5, false, {}, 'ghost');
     }
   }
@@ -4353,29 +4403,37 @@ function scheduleStep(stepIndex, time) {
     }
   } else {
     let hhArt = stepArt('hh', stepIndex);
-    // CHAOS: occasionally swap a closed hat for a half-open (the funky "tss" surprise)
-    if (hhArt === 'closed' && chaosP(0.12)) hhArt = 'halfopen';
-    // CHAOS: occasionally drop a hat
-    if (hhArt && !chaosP(0.30)) play('hh', T('hh'), isBeat, {}, hhArt);
+    // CHAOS: this bar's figure opens one hat on an "&" and may lift the hand
+    // for a whole beat. Both are fixed for the bar and repeat with the plan.
+    if (hhArt === 'closed' && fig && fig.hatOpen.includes(stepIndex)) hhArt = 'open';
+    if (hhArt && !(fig && fig.handDrop.includes(stepIndex))) {
+      play('hh', T('hh'), isBeat, {}, hhArt);
+    }
   }
 
   // ---- RIDE ----
   if (!hasHHAlter && !brokenGap) {
     const rideArt = stepArt('ride', stepIndex);
-    if (rideArt && !chaosP(0.30)) play('ride', T('ride'), isBeat, {}, rideArt);
+    // Same hand as the hats, so it lifts on the same beat
+    if (rideArt && !(fig && fig.handDrop.includes(stepIndex))) {
+      play('ride', T('ride'), isBeat, {}, rideArt);
+    }
   }
 
   // ---- TOM / CRASH / COWBELL ----
   const tomArt = stepArt('tom', stepIndex);
-  if (tomArt && !replaced.has('tom') && !chaosP(0.30)) play('tom', T('tom'), false, {}, tomArt);
-  // CHAOS: surprise tom color on empty off-steps (rare — spice, not soup)
-  if (!tomArt && isOffbeat && !replaced.has('tom') && chaosP(0.06)) {
-    play('tom', T('tom'), false, { pitch: 90 + Math.floor(Math.random() * 60) }, 'normal');
+  // Toms breathe with the same hole as the hats, rather than thinning out on
+  // their own coin flip. The old random tom sprinkle is gone: at 6 % a hit it
+  // never landed twice in the same place, which is noise, not colour.
+  if (tomArt && !replaced.has('tom') && !(fig && fig.handDrop.includes(stepIndex))) {
+    play('tom', T('tom'), false, {}, tomArt);
   }
   const crashArt = stepArt('crash', stepIndex);
   if (crashArt && !replaced.has('crash')) play('crash', T('crash'), false, {}, crashArt);
   const cowbellArt = stepArt('cowbell', stepIndex);
-  if (cowbellArt && !replaced.has('cowbell') && !chaosP(0.30)) play('cowbell', T('cowbell'), isBeat, {}, cowbellArt);
+  if (cowbellArt && !replaced.has('cowbell') && !(fig && fig.handDrop.includes(stepIndex))) {
+    play('cowbell', T('cowbell'), isBeat, {}, cowbellArt);
+  }
 
   // ---- FILL HITS ----
   // Fills follow the feel of the track they belong to (a Dilla fill should drag too).
