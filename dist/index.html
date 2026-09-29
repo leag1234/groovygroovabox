@@ -1047,6 +1047,47 @@
   #pattern-dropdown { min-width: 200px; }
   .pattern-bar .pattern-status { font-size: 9px; color: var(--ink-faint); }
 
+  /* ---------- PATTERN BANK ---------- */
+  .bank { display: flex; flex-direction: column; gap: 5px; }
+  .bank-row { display: flex; align-items: center; gap: 5px; }
+  .bank-add {
+    width: 22px; height: 22px;
+    line-height: 1;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink-dim);
+    background: #000;
+    border: 1px solid var(--line-2);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .bank-add:hover { color: var(--accent); border-color: var(--accent); }
+  #bank-name {
+    width: 150px;
+    padding: 3px 6px;
+    font-family: inherit;
+    font-size: 10px;
+    color: var(--ink);
+    background: #000;
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+  }
+  #bank-name:focus { outline: none; }
+  .bank-mini {
+    padding: 3px 7px;
+    font-family: inherit;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    background: #000;
+    border: 1px solid var(--line-2);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .bank-mini:hover { color: var(--accent); border-color: var(--accent); }
+  #bank-select { min-width: 176px; }
+  #bank-select:disabled { opacity: 0.45; }
+
   /* ---------- SEQUENCER: full width ---------- */
   .sequencer {
     padding: 16px 20px;
@@ -1468,6 +1509,20 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
     <div class="switch-mode" title="When does the pattern change apply?">
       <button class="sw-btn" id="sw-now" data-mode="now">Now</button>
       <button class="sw-btn active" id="sw-nextbar" data-mode="nextbar">Next bar</button>
+    </div>
+    <div class="bank">
+      <div class="bank-row">
+        <span class="pb-lbl">Bank</span>
+        <button class="bank-add" id="bank-add" title="Save the grid and every groove setting as a new bank entry">+</button>
+        <input type="text" id="bank-name" maxlength="40" hidden
+               title="Name this entry — leave it as it is to keep the suggestion">
+        <button class="bank-mini" id="bank-save" hidden>Save</button>
+        <button class="bank-mini" id="bank-cancel" hidden>✕</button>
+      </div>
+      <div class="bank-row">
+        <select id="bank-select" title="Recall a saved entry with all its settings"></select>
+        <button class="bank-mini" id="bank-del" title="Delete the selected entry" hidden>Delete</button>
+      </div>
     </div>
     <div class="pattern-status" id="pattern-status"></div>
   </div>
@@ -2565,6 +2620,7 @@ const state = {
   // Pattern library
   currentPattern: 'rock',
   queuedPattern: null,   // when set + switchMode='nextbar', applied at next step 0
+  queuedSnapshot: null,  // bank entry waiting for the next bar line
   switchMode: 'nextbar', // 'now' or 'nextbar'
 };
 
@@ -2636,6 +2692,227 @@ function requestPatternChange(patternId) {
     state.queuedPattern = patternId;
     setPatternStatus(`Queued: ${PATTERNS[patternId].name}`);
   }
+}
+
+// ============================================================
+// PATTERN BANK — snapshots of the grid plus every groove setting
+// ============================================================
+// A snapshot holds what you would want back when you return to an idea: the
+// 16-step grid, tempo and feel, the kit, the mix, and which live pads were
+// engaged. Deliberately NOT stored: the A/V calibration offset and the master
+// volume. Those belong to the machine you are listening on, not to the music —
+// recalling an entry must never change how loud the box is or how it lines up
+// with the display.
+//
+// Recall honours the Now / Next bar switch, so an entry can land on a bar line
+// instead of mid-phrase. That queueing is the primitive the song mode will be
+// assembled from.
+
+const BANK_KEY = 'groovygroova:bank';
+const BANK_VERSION = 1;
+
+function bankRead() {
+  try {
+    const list = JSON.parse(localStorage.getItem(BANK_KEY) || '[]');
+    return Array.isArray(list) ? list.filter(e => e && e.v === BANK_VERSION) : [];
+  } catch (err) { return []; }
+}
+
+function bankWrite(list) {
+  try {
+    localStorage.setItem(BANK_KEY, JSON.stringify(list));
+    return true;
+  } catch (err) {
+    setPatternStatus('Bank full — delete an entry');
+    return false;
+  }
+}
+
+// A name the user can simply accept: base pattern and tempo, kept unique.
+function bankSuggestName() {
+  const base = (PATTERNS[state.currentPattern] || {}).name || 'Pattern';
+  const stem = `${base} ${Math.round(state.bpm)}`;
+  const taken = new Set(bankRead().map(e => e.name));
+  if (!taken.has(stem)) return stem;
+  let n = 2;
+  while (taken.has(`${stem} (${n})`)) n++;
+  return `${stem} (${n})`;
+}
+
+function bankCapture(name) {
+  return {
+    v: BANK_VERSION,
+    id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name,
+    created: Date.now(),
+    basePattern: state.currentPattern,
+    pattern: JSON.parse(JSON.stringify(state.pattern)),
+    bpm: state.bpm,
+    swing: state.swing,
+    feelMode: state.feelMode,
+    feelIntensity: state.feelIntensity,
+    humanize: state.humanize,
+    chaos: state.chaos,
+    kit: state.kit,
+    volume: { ...state.volume },
+    mute: { ...state.mute },
+    alterations: [...state.alterations],
+  };
+}
+
+// Drive a control the way a user would, so everything already wired to it
+// runs: state, the value readout, and the localStorage persistence. Beats
+// duplicating each handler here and letting the copies drift.
+function bankDrive(id, value) {
+  const el = document.getElementById(id);
+  if (!el || value === undefined || value === null) return;
+  el.value = value;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function bankApply(entry) {
+  if (!entry) return;
+
+  // Grid
+  state.pattern = JSON.parse(JSON.stringify(entry.pattern));
+  state.currentPattern = entry.basePattern || state.currentPattern;
+  document.querySelectorAll('.step').forEach(el => {
+    renderStep(el, el.dataset.track, parseInt(el.dataset.step));
+  });
+  TRACKS.forEach(t => updateArtIndicators(t.id));
+  const pdd = document.getElementById('pattern-dropdown');
+  if (pdd && PATTERNS[state.currentPattern]) pdd.value = state.currentPattern;
+
+  // Tempo and groove, through their own controls
+  if (typeof entry.bpm === 'number') bankDrive('bpm-slider', entry.bpm);
+  bankDrive('swing', entry.swing);
+  bankDrive('feel-dropdown', entry.feelMode);
+  bankDrive('feel-intensity', entry.feelIntensity);
+  bankDrive('humanize', entry.humanize);
+  bankDrive('chaos', entry.chaos);
+
+  // Kit — only if that kit is actually available (Samples may not be loaded)
+  const kitBtn = document.querySelector(`.kit-btn[data-kit="${entry.kit}"]`);
+  if (kitBtn && kitBtn.style.display !== 'none') kitBtn.click();
+
+  // Mix
+  if (entry.volume) {
+    Object.entries(entry.volume).forEach(([track, v]) => {
+      state.volume[track] = v;
+      const sl = document.querySelector(`.track-vol[data-track="${track}"]`);
+      if (sl) sl.value = Math.round(v * 100);
+    });
+  }
+  if (entry.mute) {
+    Object.entries(entry.mute).forEach(([track, m]) => {
+      state.mute[track] = !!m;
+      const btn = document.querySelector(`.track-mute[data-mute="${track}"]`);
+      if (btn) btn.classList.toggle('active', !!m);
+    });
+  }
+
+  // Live pads. Set the state and mirror it, rather than clicking each pad:
+  // clicking would run the exclusive-group logic and fight the stored set.
+  state.alterations = new Set(entry.alterations || []);
+  document.querySelectorAll('.pad.toggle').forEach(pad => {
+    pad.classList.toggle('active', state.alterations.has(pad.dataset.alter));
+  });
+
+  if (window._updateGrooveBadge) window._updateGrooveBadge();
+  setPatternStatus('');
+}
+
+// Recall, honouring Now / Next bar the same way a pattern change does.
+function bankRecall(id) {
+  const entry = bankRead().find(e => e.id === id);
+  if (!entry) return;
+  if (!state.playing || state.switchMode === 'now') {
+    state.queuedSnapshot = null;
+    bankApply(entry);
+  } else {
+    state.queuedSnapshot = entry;
+    setPatternStatus(`Queued: ${entry.name}`);
+  }
+}
+
+function bankRefreshSelect(selectId) {
+  const sel = document.getElementById('bank-select');
+  const del = document.getElementById('bank-del');
+  if (!sel) return;
+  const list = bankRead();
+  sel.innerHTML = '';
+  if (!list.length) {
+    sel.innerHTML = '<option value="">— bank empty —</option>';
+    sel.disabled = true;
+    if (del) del.hidden = true;
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">— recall —</option>' +
+    list.map(e => `<option value="${e.id}">${e.name.replace(/[<>&]/g, '')}</option>`).join('');
+  if (selectId) sel.value = selectId;
+  if (del) del.hidden = !sel.value;
+}
+
+function bindBank() {
+  const addBtn = document.getElementById('bank-add');
+  const nameIn = document.getElementById('bank-name');
+  const saveBtn = document.getElementById('bank-save');
+  const cancelBtn = document.getElementById('bank-cancel');
+  const sel = document.getElementById('bank-select');
+  const delBtn = document.getElementById('bank-del');
+  if (!addBtn || !nameIn || !sel) return;
+
+  const openEditor = () => {
+    nameIn.value = bankSuggestName();
+    [nameIn, saveBtn, cancelBtn].forEach(el => { if (el) el.hidden = false; });
+    addBtn.hidden = true;
+    nameIn.focus();
+    nameIn.select();          // typing replaces the suggestion, Enter keeps it
+  };
+  const closeEditor = () => {
+    [nameIn, saveBtn, cancelBtn].forEach(el => { if (el) el.hidden = true; });
+    addBtn.hidden = false;
+  };
+  const commit = () => {
+    // An empty field keeps the suggestion — the field is a chance to rename,
+    // never an obligation.
+    const name = nameIn.value.trim() || bankSuggestName();
+    const list = bankRead();
+    const entry = bankCapture(name);
+    list.push(entry);
+    if (bankWrite(list)) {
+      bankRefreshSelect(entry.id);
+      setPatternStatus(`Saved: ${name}`);
+      setTimeout(() => setPatternStatus(''), 1800);
+    }
+    closeEditor();
+  };
+
+  addBtn.addEventListener('click', openEditor);
+  if (saveBtn) saveBtn.addEventListener('click', commit);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeEditor);
+  nameIn.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeEditor(); }
+  });
+
+  sel.addEventListener('change', () => {
+    if (delBtn) delBtn.hidden = !sel.value;
+    if (sel.value) bankRecall(sel.value);
+  });
+
+  if (delBtn) delBtn.addEventListener('click', () => {
+    const id = sel.value;
+    if (!id) return;
+    const entry = bankRead().find(e => e.id === id);
+    if (!entry || !window.confirm(`Delete "${entry.name}" from the bank?`)) return;
+    bankWrite(bankRead().filter(e => e.id !== id));
+    bankRefreshSelect();
+  });
+
+  bankRefreshSelect();
 }
 
 function setPatternStatus(text) {
@@ -4232,6 +4509,14 @@ function scheduleStep(stepIndex, time) {
       wildcardQueued = false;
       wildcardActive = drawWildcard();
     }
+    // Apply a queued bank entry at the start of the bar — the same bar-line
+    // handoff the song mode will use.
+    if (state.queuedSnapshot) {
+      const snap = state.queuedSnapshot;
+      state.queuedSnapshot = null;
+      const delayMs = Math.max(0, (time - ctx.currentTime) * 1000);
+      setTimeout(() => bankApply(snap), delayMs);
+    }
     // Apply any queued pattern change at the start of the bar
     if (state.queuedPattern) {
       const queued = state.queuedPattern;
@@ -4733,6 +5018,7 @@ function buildSequencer() {
     const vol = document.createElement('input');
     vol.type = 'range';
     vol.className = 'slider track-vol';
+    vol.dataset.track = track.id;
     vol.min = 0; vol.max = 100;
     vol.value = Math.round((state.volume[track.id] || 0.8) * 100);
     vol.addEventListener('input', e => {
@@ -5882,6 +6168,7 @@ document.getElementById('calib-box').addEventListener('click', e => {
 buildSequencer();
 TRACKS.forEach(t => updateArtIndicators(t.id));
 bindControls();
+bindBank();
 loadMappings();
 bindMidiUI();
 

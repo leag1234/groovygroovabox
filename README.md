@@ -53,6 +53,12 @@ An original concept by **Gaël Duval**, developed since **May 2026**. First publ
 
 Any articulation a sampled kit lacks falls back to a matching synth kit, so every pattern plays on every kit.
 
+### Pattern bank
+- **Save** the grid together with every groove setting: tempo, swing, Feel preset and intensity, Humanize, Chaos, the kit, per-track volume and mutes, and which live pads are engaged. Press **+**, and a field opens pre-filled with a suggested name (`Funk 96`, made unique) — type over it or press Enter to keep it.
+- **Recall** any entry from the dropdown below. It honours the **Now / Next bar** switch, so an entry can land on a bar line instead of mid-phrase.
+- Entries live in the browser's local storage and survive a reload. The A/V calibration offset and the master volume are deliberately *not* stored: they belong to the machine you are listening on, so recalling an entry never changes how loud the box is or how it lines up with the display.
+- This is the groundwork for the song mode, which will assemble bank entries into an arrangement.
+
 ### Sync and calibration
 - The playhead is driven by the audio clock (requestAnimationFrame loop), never by timers, so it cannot drift under main-thread load.
 - **A/V calibration**: an automatic mode plays clicks and listens to them through the microphone to measure real end-to-end output latency (multi-path detection handles virtual drivers and second outputs), plus a manual reaction-time fallback. Your fine-tuning is learned and reapplied to future calibrations.
