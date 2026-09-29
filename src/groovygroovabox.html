@@ -1048,23 +1048,32 @@
   .pattern-bar .pattern-status { font-size: 9px; color: var(--ink-faint); }
 
   /* ---------- PATTERN BANK ---------- */
-  .bank { display: flex; flex-direction: column; gap: 5px; }
-  .bank-row { display: flex; align-items: center; gap: 5px; }
-  .bank-add {
-    width: 22px; height: 22px;
-    line-height: 1;
-    font-size: 14px;
+  /* Label on the left like the pattern selector, then a two-row stack of a
+     fixed width so both rows line up instead of stepping raggedly. */
+  .bank { display: flex; align-items: center; gap: 10px; }
+  .bank-stack { display: flex; flex-direction: column; gap: 4px; width: 208px; }
+  .bank-row { display: flex; align-items: center; gap: 4px; }
+
+  .bank-btn {
+    flex: 1;
+    padding: 4px 8px;
     font-family: inherit;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--ink-dim);
     background: #000;
     border: 1px solid var(--line-2);
     border-radius: 2px;
     cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
   }
-  .bank-add:hover { color: var(--accent); border-color: var(--accent); }
+  .bank-btn:hover { color: var(--accent); border-color: var(--accent); }
+
   #bank-name {
-    width: 150px;
-    padding: 3px 6px;
+    flex: 1;
+    min-width: 0;
+    padding: 4px 7px;
     font-family: inherit;
     font-size: 10px;
     color: var(--ink);
@@ -1073,19 +1082,27 @@
     border-radius: 2px;
   }
   #bank-name:focus { outline: none; }
-  .bank-mini {
-    padding: 3px 7px;
+
+  /* Fixed-width so the row never reflows between its two states */
+  .bank-icon {
+    width: 26px;
+    flex: none;
+    padding: 4px 0;
     font-family: inherit;
-    font-size: 9px;
-    letter-spacing: 0.08em;
+    font-size: 10px;
     color: var(--ink-dim);
     background: #000;
     border: 1px solid var(--line-2);
     border-radius: 2px;
     cursor: pointer;
   }
-  .bank-mini:hover { color: var(--accent); border-color: var(--accent); }
-  #bank-select { min-width: 176px; }
+  .bank-icon:hover { color: var(--accent); border-color: var(--accent); }
+  .bank-icon.danger:hover { color: var(--red); border-color: var(--red); }
+  /* Hidden but still occupying its slot, so selecting an entry does not
+     shove the dropdown sideways. */
+  .bank-icon.slot-hidden { visibility: hidden; }
+
+  #bank-select { flex: 1; min-width: 0; }
   #bank-select:disabled { opacity: 0.45; }
 
   /* ---------- SEQUENCER: full width ---------- */
@@ -1506,17 +1523,21 @@
       <button class="sw-btn active" id="sw-nextbar" data-mode="nextbar">Next bar</button>
     </div>
     <div class="bank">
-      <div class="bank-row">
-        <span class="pb-lbl">Bank</span>
-        <button class="bank-add" id="bank-add" title="Save the grid and every groove setting as a new bank entry">+</button>
-        <input type="text" id="bank-name" maxlength="40" hidden
-               title="Name this entry — leave it as it is to keep the suggestion">
-        <button class="bank-mini" id="bank-save" hidden>Save</button>
-        <button class="bank-mini" id="bank-cancel" hidden>✕</button>
-      </div>
-      <div class="bank-row">
-        <select id="bank-select" title="Recall a saved entry with all its settings"></select>
-        <button class="bank-mini" id="bank-del" title="Delete the selected entry" hidden>Delete</button>
+      <span class="pb-lbl">Bank</span>
+      <div class="bank-stack">
+        <div class="bank-row">
+          <button class="bank-btn" id="bank-add"
+                  title="Save the grid and every groove setting as a new bank entry">+ Save setup</button>
+          <input type="text" id="bank-name" maxlength="40" hidden
+                 title="Name this entry — leave it as it is to keep the suggestion">
+          <button class="bank-icon" id="bank-save" title="Save" hidden>✓</button>
+          <button class="bank-icon" id="bank-cancel" title="Cancel" hidden>✕</button>
+        </div>
+        <div class="bank-row">
+          <select id="bank-select" title="Recall a saved entry with all its settings"></select>
+          <button class="bank-icon danger slot-hidden" id="bank-del"
+                  title="Delete the selected entry">✕</button>
+        </div>
       </div>
     </div>
     <div class="pattern-status" id="pattern-status"></div>
@@ -2827,14 +2848,14 @@ function bankRefreshSelect(selectId) {
   if (!list.length) {
     sel.innerHTML = '<option value="">— bank empty —</option>';
     sel.disabled = true;
-    if (del) del.hidden = true;
+    if (del) del.classList.add('slot-hidden');
     return;
   }
   sel.disabled = false;
   sel.innerHTML = '<option value="">— recall —</option>' +
     list.map(e => `<option value="${e.id}">${e.name.replace(/[<>&]/g, '')}</option>`).join('');
   if (selectId) sel.value = selectId;
-  if (del) del.hidden = !sel.value;
+  if (del) del.classList.toggle('slot-hidden', !sel.value);
 }
 
 function bindBank() {
@@ -2881,7 +2902,7 @@ function bindBank() {
   });
 
   sel.addEventListener('change', () => {
-    if (delBtn) delBtn.hidden = !sel.value;
+    if (delBtn) delBtn.classList.toggle('slot-hidden', !sel.value);
     if (sel.value) bankRecall(sel.value);
   });
 
