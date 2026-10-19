@@ -17,12 +17,13 @@ An original concept by **Gaël Duval**, developed since **May 2026**. First publ
 ### Sequencer
 - 8 tracks (kick, snare, clap, hi-hat, ride, tom, crash, cowbell), 16 steps, per-track volume and mute
 - Per-step **articulations**: rim shot, ghost note, cross-stick on the snare; closed, half-open, open, foot and open-close on the hi-hat; bow and bell on the ride
-- 17 built-in patterns across rock, pop, funk, disco, house, techno, breakbeat, hip-hop, 2000s R&B, trap, reggae, Afro-Cuban (son, rumba, cha-cha), bossa, samba and Bo Diddley
+- 23 built-in patterns: rock, funk, breakbeat, blues shuffle, Motown, punk / D-beat, New Orleans second line, disco, house, UK garage 2-step, drum & bass, hip-hop, 2000s R&B, trap, reggae, dancehall, Afro-Cuban (son, rumba, cha-cha), bossa, samba, Bo Diddley and Afrobeat
 - Pattern switching **now** or **on the next bar**, tempo 40 to 220 BPM, swing, count-in, metronome
 
 ### Live performance
 - **Alteration pads** (with keyboard shortcuts): hi-hat variants, kick variants, syncopation, ghost snare, clap on 2 and 4, snare echoes, and **Broken** (2000s R&B chopped-beat mode with a 2-bar A/B cycle)
-- **One-shot fills** (rock, short, tom roll, funk) and a hold-to-drop pad
+- **One-shot fills**: rock, short, tom roll, funk, **relaunch** (a double break — kick, then a flammed snare, twice, with the last 16th left empty so the groove snaps back onto the one), **drag** and **linear**. Plus a hold-to-drop pad.
+- **Intros and outros**: seven intros (stick count, crash drop-in, hi-hat build, tom build, snare roll, kick pulse, clave) and five outros (crash and stop, triple hit, tom descent, snare roll out, thin out). An intro plays one bar then hands over to the groove — pressing it from a stop starts the transport. An outro plays at the next bar, then stops. Keys `I` and `O`.
 - **Wildcard** (key `Y`): arm it, and on the next bar the machine draws one gesture from a shuffled bag of 12 (half-time, double-time, beat repeat, beat chop, pushed bar, kick-only breakdown, no-kick breakdown, stop-time, full stop, trap roll, snare build, one drop). You choose *when*, it chooses *what*. Exactly one bar, then back to the groove.
 
 ### Groove engine
@@ -87,6 +88,8 @@ Any articulation a sampled kit lacks falls back to a matching synth kit, so ever
 | `J` `K` | Snare echo +1, +3 |
 | `T` | Broken |
 | `C` `V` `B` `N` | Fills: rock, short, tom roll, funk |
+| `U` `L` | Fills: relaunch, drag |
+| `I` `O` | Intro / Outro |
 | `M` (hold) | Drop |
 | `Y` | Wildcard (arms the next bar) |
 

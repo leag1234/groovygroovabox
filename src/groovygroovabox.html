@@ -1102,6 +1102,21 @@
      shove the dropdown sideways. */
   .bank-icon.slot-hidden { visibility: hidden; }
 
+  /* ---------- INTRO / OUTRO ---------- */
+  .song-list { flex-direction: column; gap: 6px; }
+  .song-row { display: flex; align-items: stretch; gap: 5px; }
+  .song-row select {
+    flex: 1;
+    min-width: 0;
+    font-size: 9px;
+  }
+  .song-btn { flex: none; width: 84px; }
+  .song-btn.armed {
+    color: var(--accent-2);
+    border-color: var(--accent-2);
+    animation: takepulse 1s ease-in-out infinite;
+  }
+
   #bank-select, #take-select { flex: 1; min-width: 0; }
   .takes-stack { width: 268px; }
   #take-rec.armed  { color: var(--accent-2); border-color: var(--accent-2); }
@@ -1502,16 +1517,23 @@
           <option value="rock">Rock</option>
           <option value="funk">Funk</option>
           <option value="breakbeat">Breakbeat</option>
+          <option value="shuffle">Blues Shuffle</option>
+          <option value="motown">Motown</option>
+          <option value="punk">Punk / D-Beat</option>
+          <option value="secondline">Second Line</option>
         </optgroup>
         <optgroup label="Dance / Electronic">
           <option value="disco">Disco</option>
           <option value="house">House</option>
+          <option value="garage">UK Garage 2-Step</option>
+          <option value="dnb">Drum &amp; Bass</option>
         </optgroup>
         <optgroup label="Urban">
           <option value="hiphop">Hip-Hop</option>
           <option value="rnb2000">R&B 2000s</option>
           <option value="trap">Trap</option>
           <option value="reggae">Reggae</option>
+          <option value="dancehall">Dancehall</option>
         </optgroup>
         <optgroup label="Latin / Afro-Cuban">
           <option value="son">Son Cubano</option>
@@ -1520,6 +1542,7 @@
           <option value="bossa">Bossa Nova</option>
           <option value="samba">Samba</option>
           <option value="bodiddley">Bo Diddley</option>
+          <option value="afrobeat">Afrobeat</option>
         </optgroup>
         <optgroup label="—">
           <option value="empty">Empty</option>
@@ -1616,12 +1639,31 @@
         </div>
 
         <div class="pad-group">
+          <div class="pad-group-title">Intro / Outro</div>
+          <div class="pad-list song-list">
+            <div class="song-row">
+              <select id="intro-select" title="Which intro to play"></select>
+              <button class="pad song-btn" id="intro-go" data-key="I"
+                      title="Play the intro for one bar, then drop into the groove. From a stop it starts the transport.">Intro <span class="key">I</span></button>
+            </div>
+            <div class="song-row">
+              <select id="outro-select" title="Which outro to play"></select>
+              <button class="pad song-btn" id="outro-go" data-key="O"
+                      title="Play the outro at the next bar, then stop.">Outro <span class="key">O</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pad-group">
           <div class="pad-group-title">Fills (1 tap)</div>
           <div class="pad-list">
             <button class="pad fill-btn" data-fill="fill-classic" data-key="C">Rock <span class="key">C</span></button>
             <button class="pad fill-btn" data-fill="fill-short" data-key="V">Short <span class="key">V</span></button>
             <button class="pad fill-btn" data-fill="fill-tom-roll" data-key="B">Tom Roll <span class="key">B</span></button>
             <button class="pad fill-btn" data-fill="fill-funk" data-key="N">Funk <span class="key">N</span></button>
+            <button class="pad fill-btn" data-fill="fill-relaunch" data-key="U" title="Relaunch: a double break — kick, then a snare double stroke, twice, with the last 16th left empty so the groove snaps back onto the one.">Relaunch <span class="key">U</span></button>
+            <button class="pad fill-btn" data-fill="fill-drag" data-key="L" title="Drag: two ghost notes pulling into an accented backbeat, then a kick on the last 16th.">Drag <span class="key">L</span></button>
+            <button class="pad fill-btn" data-fill="fill-linear" title="Linear: kick, snare and toms in sequence, never two voices at once. Click only — no key left on the row.">Linear</button>
             <button class="pad momentary" data-alter="drop" data-key="M">Drop (hold) <span class="key">M</span></button>
             <button class="pad wildcard" id="wildcard-pad" data-key="Y" title="Wildcard: arms a surprise one-bar gesture that starts at the NEXT bar — half-time, full stop, beat chop, trap roll... drawn from a shuffled bag (no repeats until all 12 have played). You pick when, the machine picks what."><span class="wc-label">Wildcard</span> <span class="key">Y</span></button>
           </div>
@@ -2200,6 +2242,11 @@ function chaosPlanAdvance() {
 // (identity-preserving) or style templates borrowed from musical fundamentals.
 let wildcardQueued = false;
 let wildcardActive = null;   // { name, label, events: Array(16) of [{track,art,accent,off}] }
+// Intro/outro: one bar that replaces everything, then hands over to the
+// groove (intro) or stops the transport (outro).
+let songGesture = null;      // { kind: 'intro'|'outro', label, events }
+let songQueued = null;       // waiting for the next bar line
+let songStopping = false;    // outro has finished; stay silent until the stop lands
 let wildcardBag = [];
 let wildcardLastName = null;
 
@@ -2299,6 +2346,154 @@ const WILDCARDS = [
       return e;
     } },
 ];
+
+// ============================================================
+// INTROS AND OUTROS — one bar that opens or closes a piece
+// ============================================================
+// Same shape as a wildcard gesture: one bar of events that replaces
+// everything. An intro hands over to the groove when its bar ends; an outro
+// stops the transport instead. Both land on a bar line.
+
+const INTROS = [
+  { id: 'sticks', label: 'Stick count (1-2-3-4)', build: () => {
+      const e = _wcEmpty16();
+      [0, 4, 8, 12].forEach(i =>
+        e[i].push({ track: 'snare', art: 'crossstick', accent: i === 0 }));
+      return e;
+    } },
+  { id: 'crash', label: 'Crash drop-in', build: () => {
+      const e = _wcEmpty16();
+      e[0].push({ track: 'crash', art: 'normal', accent: true });
+      e[0].push({ track: 'kick', art: 'normal', accent: true });
+      for (let i = 8; i < 16; i += 2) e[i].push({ track: 'hh', art: 'closed' });
+      e[15].push({ track: 'snare', art: 'normal', accent: true });
+      return e;
+    } },
+  { id: 'hatbuild', label: 'Hi-hat build', build: () => {
+      const e = _wcEmpty16();
+      e[0].push({ track: 'kick', art: 'normal', accent: true });
+      for (let i = 0; i < 8; i += 2) e[i].push({ track: 'hh', art: 'closed' });
+      for (let i = 8; i < 16; i++) e[i].push({ track: 'hh', art: 'closed', accent: i >= 12 });
+      e[15].push({ track: 'snare', art: 'normal', accent: true });
+      return e;
+    } },
+  { id: 'tombuild', label: 'Tom build', build: () => {
+      const e = _wcEmpty16();
+      const pitches = [220, 200, 180, 165, 150, 140, 130, 120];
+      pitches.forEach((pitch, n) => {
+        const i = n * 2;
+        e[i].push({ track: 'tom', art: 'normal', opts: { pitch }, accent: n % 2 === 0 });
+      });
+      for (let i = 8; i < 16; i++) e[i].push({ track: 'tom', art: 'normal', opts: { pitch: 115 - i * 2 } });
+      return e;
+    } },
+  { id: 'snareroll', label: 'Snare roll', build: () => {
+      const e = _wcEmpty16();
+      for (let i = 0; i < 16; i++) {
+        const late = i >= 8;
+        e[i].push({ track: 'snare', art: late ? 'normal' : 'ghost', accent: i % 4 === 0 && late });
+        if (late) e[i].push({ track: 'snare', art: 'ghost', off: 0.5 });
+      }
+      return e;
+    } },
+  { id: 'kickpulse', label: 'Kick pulse (dance)', build: () => {
+      const e = _wcEmpty16();
+      [0, 4, 8, 12].forEach(i => e[i].push({ track: 'kick', art: 'normal', accent: i === 0 }));
+      [2, 6, 10].forEach(i => e[i].push({ track: 'hh', art: 'closed' }));
+      e[14].push({ track: 'hh', art: 'open', accent: true });
+      return e;
+    } },
+  { id: 'clave', label: 'Clave (latin)', build: () => {
+      const e = _wcEmpty16();
+      [0, 3, 6, 10, 12].forEach(i =>
+        e[i].push({ track: 'snare', art: 'crossstick', accent: i === 0 }));
+      [0, 8].forEach(i => e[i].push({ track: 'cowbell', art: 'normal' }));
+      return e;
+    } },
+];
+
+const OUTROS = [
+  { id: 'crashstop', label: 'Crash and stop', build: () => {
+      const e = _wcEmpty16();
+      e[0].push({ track: 'crash', art: 'normal', accent: true });
+      e[0].push({ track: 'kick', art: 'normal', accent: true });
+      e[0].push({ track: 'snare', art: 'normal', accent: true });
+      return e;
+    } },
+  { id: 'triplehit', label: 'Triple hit ending', build: () => {
+      const e = _wcEmpty16();
+      [0, 4, 8].forEach(i => {
+        e[i].push({ track: 'kick', art: 'normal', accent: true });
+        e[i].push({ track: 'snare', art: 'normal', accent: true });
+      });
+      e[8].push({ track: 'crash', art: 'normal', accent: true });
+      return e;
+    } },
+  { id: 'tomdown', label: 'Tom descent', build: () => {
+      const e = _wcEmpty16();
+      [200, 175, 155, 140, 125, 115].forEach((pitch, n) =>
+        e[n * 2].push({ track: 'tom', art: 'normal', opts: { pitch }, accent: n === 0 }));
+      e[12].push({ track: 'crash', art: 'normal', accent: true });
+      e[12].push({ track: 'kick', art: 'normal', accent: true });
+      return e;
+    } },
+  { id: 'rollout', label: 'Snare roll out', build: () => {
+      const e = _wcEmpty16();
+      for (let i = 0; i < 12; i++) {
+        e[i].push({ track: 'snare', art: i < 6 ? 'ghost' : 'normal', accent: i >= 10 });
+        if (i >= 6) e[i].push({ track: 'snare', art: 'ghost', off: 0.5 });
+      }
+      e[12].push({ track: 'crash', art: 'normal', accent: true });
+      e[12].push({ track: 'kick', art: 'normal', accent: true });
+      return e;
+    } },
+  { id: 'thinout', label: 'Thin out', build: () => {
+      const e = _wcEmpty16();
+      [0, 4, 8].forEach(i => e[i].push({ track: 'kick', art: 'normal', accent: i === 0 }));
+      [0, 2, 4, 6, 8].forEach(i => e[i].push({ track: 'hh', art: 'closed' }));
+      e[4].push({ track: 'snare', art: 'normal' });
+      e[12].push({ track: 'hh', art: 'foot' });
+      return e;
+    } },
+];
+
+function songFire(kind) {
+  const list = kind === 'intro' ? INTROS : OUTROS;
+  const sel = document.getElementById(kind + '-select');
+  const def = list.find(g => g.id === (sel && sel.value)) || list[0];
+  if (!def) return;
+  const gesture = { kind, label: def.label, events: def.build() };
+
+  if (!state.playing) {
+    // An outro needs something to end; from a stop, only an intro makes sense.
+    if (kind === 'outro') return;
+    songQueued = gesture;
+    songUpdateUI();
+    startPlaying();
+    return;
+  }
+  songQueued = gesture;
+  songUpdateUI();
+  setPatternStatus(`${kind === 'intro' ? 'Intro' : 'Outro'} at the next bar: ${def.label}`);
+}
+
+function songUpdateUI() {
+  const armed = songQueued || songGesture;
+  ['intro', 'outro'].forEach(kind => {
+    const btn = document.getElementById(kind + '-go');
+    if (!btn) return;
+    btn.classList.toggle('armed', !!armed && armed.kind === kind);
+  });
+}
+
+function bindSong() {
+  [['intro', INTROS], ['outro', OUTROS]].forEach(([kind, list]) => {
+    const sel = document.getElementById(kind + '-select');
+    if (sel) sel.innerHTML = list.map(g => `<option value="${g.id}">${g.label}</option>`).join('');
+    const btn = document.getElementById(kind + '-go');
+    if (btn) btn.addEventListener('click', () => songFire(kind));
+  });
+}
 
 function drawWildcard() {
   if (wildcardBag.length === 0) {
@@ -2402,7 +2597,7 @@ const PATTERNS = {
       kick:  ['normal',0,0,0, 'normal',0,0,0, 'normal',0,0,0, 'normal',0,0,0],
       snare: [0,0,0,0, 'normal',0,0,0, 0,0,0,0, 'normal',0,0,0],
       clap:  [0,0,0,0, 'normal',0,0,0, 0,0,0,0, 'normal',0,0,0],
-      hh:    ['closed',0,'foot',0, 'closed',0,'foot',0, 'closed',0,'foot',0, 'closed',0,'halfopen',0],
+      hh:    ['closed',0,'open',0, 'closed',0,'open',0, 'closed',0,'open',0, 'closed',0,'open',0],
       ride:  [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
       tom:   [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
       crash: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
@@ -2494,7 +2689,7 @@ const PATTERNS = {
     pattern: {
       // Bo Diddley clave: 1, & of 2, 3, & of 4, 4& again — iconic afro-cuban riff
       // In 16 steps: kick on 0, 3, 6, 10, 14 (the "3+3+2+3+3" pattern)
-      kick:  ['normal',0,0,'normal', 0,0,'normal',0, 0,0,'normal',0, 0,0,'normal',0],
+      kick:  ['normal',0,0,'normal', 0,0,'normal',0, 0,0,'normal',0, 'normal',0,0,0],
       snare: [0,0,0,0, 'rim',0,0,0, 0,0,0,0, 'rim',0,0,0],
       clap:  [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
       hh:    ['closed',0,'closed',0, 'closed',0,'closed',0, 'closed',0,'closed',0, 'closed',0,'closed',0],
@@ -2529,7 +2724,7 @@ const PATTERNS = {
       // cross-stick plays the bossa clave on steps 0, 6, 10, 12
       // Closed hi-hat steady 8ths (subdued, like a shaker)
       kick:  ['normal',0,0,0, 0,0,'normal',0, 'normal',0,0,0, 0,0,'normal',0],
-      snare: ['crossstick',0,0,0, 0,0,'crossstick',0, 0,0,'crossstick',0, 'crossstick',0,0,0],
+      snare: ['crossstick',0,0,'crossstick', 0,0,'crossstick',0, 0,0,'crossstick',0, 0,'crossstick',0,0],
       clap:  [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
       hh:    ['closed',0,'closed',0, 'closed',0,'closed',0, 'closed',0,'closed',0, 'closed',0,'closed',0],
       ride:  [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
@@ -2580,13 +2775,141 @@ const PATTERNS = {
       // Kick on the strong beats, snare on the off
       // Ride bell on quarter notes for the cowbell feel
       kick:  ['normal',0,0,0, 'normal',0,0,0, 'normal',0,0,0, 'normal',0,0,0],
-      snare: [0,0,0,0, 0,0,0,0, 0,0,'normal',0, 0,0,'normal','normal'],
+      snare: ['normal',0,0,0, 0,0,0,0, 0,0,0,0, 'normal',0,'normal',0],
       clap:  [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
       hh:    ['closed',0,'closed',0, 'closed',0,'closed',0, 'closed',0,'closed',0, 'closed',0,'closed',0],
       ride:  ['bell',0,0,0, 'bell',0,0,0, 'bell',0,0,0, 'bell',0,0,0],
       tom:   [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
       crash: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
       cowbell: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+    },
+  },
+  shuffle: {
+    name: 'Blues Shuffle',
+    bpm: 95,
+    pattern: {
+      // Blues shuffle: plain 8ths on the kit, the triplet lives in Swing.
+      // Push Swing to ~60% and the Jazz Shuffle feel for the real lope.
+      kick:    ['normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  motown: {
+    name: 'Motown',
+    bpm: 122,
+    pattern: {
+      // Four on the snare — the Motown signature. Backbeats accented by the
+      // pattern, 1 and 3 kept lighter as ghosts so the 2 and 4 still land.
+      kick:    ['normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 'normal', 0, 0, 0, 0, 0],
+      snare:   ['ghost', 0, 0, 0, 'normal', 0, 0, 0, 'ghost', 0, 0, 0, 'normal', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  punk: {
+    name: 'Punk / D-Beat',
+    bpm: 178,
+    pattern: {
+      // D-beat: the kick skips onto the '+' of 1 and 3 against a flat
+      // backbeat. Fast, driving, deliberately plain on the hats.
+      kick:    ['normal', 0, 0, 'normal', 0, 0, 0, 0, 'normal', 0, 0, 'normal', 0, 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  secondline: {
+    name: 'Second Line',
+    bpm: 92,
+    pattern: {
+      // New Orleans second line: the street-parade shuffle. Bass drum on the
+      // 1 and the '+' of 2, snare answering with drags around the backbeat.
+      kick:    ['normal', 0, 0, 'normal', 0, 0, 'normal', 0, 0, 0, 0, 'normal', 0, 0, 0, 0],
+      snare:   [0, 0, 'ghost', 0, 'normal', 0, 0, 'ghost', 0, 0, 'normal', 0, 'normal', 0, 'ghost', 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  garage: {
+    name: 'UK Garage 2-Step',
+    bpm: 134,
+    pattern: {
+      // 2-step: the kick deliberately skips beat 3, the snare lands on 2 and
+      // 4 with a shuffled 16th between. Push Swing to 50-60%.
+      kick:    ['normal', 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 'ghost', 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      [0, 0, 'closed', 'closed', 0, 0, 'closed', 'open', 0, 0, 'closed', 'closed', 0, 0, 'closed', 'open'],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  dnb: {
+    name: 'Drum & Bass',
+    bpm: 174,
+    pattern: {
+      // Two-step D&B: kick on 1 and the '+' of 3, snare on 2 and 4, ghosts
+      // filling the gaps. The Amen kit and a little Chaos suit this one.
+      kick:    ['normal', 0, 0, 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 'ghost', 0, 0, 0, 0, 'normal', 'ghost', 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  dancehall: {
+    name: 'Dancehall',
+    bpm: 96,
+    pattern: {
+      // Dancehall one-drop cousin: kick on 1 and the '+' of 2, rim on the
+      // backbeats, hats straight. Sparse on purpose — it leaves room.
+      kick:    ['normal', 0, 0, 0, 0, 0, 'normal', 0, 'normal', 0, 0, 0, 0, 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'rim', 0, 0, 0, 0, 0, 0, 0, 'rim', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  afrobeat: {
+    name: 'Afrobeat',
+    bpm: 112,
+    pattern: {
+      // Tony Allen territory: the kit never states the 1 plainly. Kick off
+      // the downbeat, ghosts everywhere, cowbell holding the pulse.
+      kick:    ['normal', 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 'normal', 0, 0, 0, 'normal', 0],
+      snare:   [0, 0, 'ghost', 0, 'normal', 0, 'ghost', 0, 0, 'ghost', 0, 0, 'normal', 0, 0, 'ghost'],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed'],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: ['normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0],
     },
   },
   empty: {
@@ -4693,6 +5016,52 @@ const FILLS = {
     },
     minStart: 8,
   },
+
+  // Relaunch — the double break. Kick, then the snare answered with a double
+  // stroke, twice, with the last 16th left empty so the groove is thrown back
+  // onto the one:  K . S S  |  K . S S .
+  'fill-relaunch': {
+    steps: {
+      8:  [{ track: 'kick',  accent: true, replace: true },
+           { track: 'snare', mute: true }],
+      // Flam: grace note a twelfth of a step early, then the stroke itself
+      9:  [{ track: 'snare', art: 'ghost', off: -0.12, replace: true },
+           { track: 'snare', accent: true }],
+      10: [{ track: 'snare', mute: true }],
+      11: [{ track: 'snare', mute: true }, { track: 'kick', mute: true }],
+      12: [{ track: 'kick',  accent: true, replace: true },
+           { track: 'snare', mute: true }],
+      13: [{ track: 'snare', art: 'ghost', off: -0.12, replace: true },
+           { track: 'snare', accent: true }],
+      14: [{ track: 'snare', mute: true }],
+      15: [{ track: 'snare', mute: true }, { track: 'kick', mute: true }],
+    },
+    minStart: 8,
+  },
+
+  // Drag — two ghosts pulling into an accented backbeat, the way a drummer
+  // leans on the snare rather than rolling across the bar.
+  'fill-drag': {
+    steps: {
+      11: [{ track: 'snare', art: 'ghost', replace: true }],
+      12: [{ track: 'snare', art: 'ghost', replace: true }],
+      13: [{ track: 'snare', accent: true, replace: true }],
+      15: [{ track: 'kick',  accent: true, replace: true }],
+    },
+    minStart: 11,
+  },
+
+  // Linear — no two voices ever land together: kick, snare, tom in sequence,
+  // descending across the last beat.
+  'fill-linear': {
+    steps: {
+      12: [{ track: 'kick',  accent: true, replace: true }],
+      13: [{ track: 'snare', replace: true }],
+      14: [{ track: 'tom',   opts: { pitch: 150 }, replace: true }],
+      15: [{ track: 'tom',   opts: { pitch: 110 }, accent: true, replace: true }],
+    },
+    minStart: 12,
+  },
 };
 
 // ---- KICK SPACING GUARD ----
@@ -4872,6 +5241,18 @@ function scheduleStep(stepIndex, time) {
     state.brokenPhase = !state.brokenPhase;
     // Advance the chaos structural-pause plan (rolls/locks/re-rolls itself)
     chaosPlanAdvance();
+    // Intro/outro: the bar that just ended either hands over to the groove or
+    // takes the transport down with it.
+    if (songGesture) {
+      const wasOutro = songGesture.kind === 'outro';
+      songGesture = null;
+      if (wasOutro) {
+        songStopping = true;
+        const delayMs = Math.max(0, (time - ctx.currentTime) * 1000);
+        setTimeout(() => stopPlaying(), delayMs);
+      }
+    }
+    if (songQueued) { songGesture = songQueued; songQueued = null; }
     // Wildcard: one full bar of a randomly drawn gesture, then back to normal
     if (wildcardActive) wildcardActive = null;
     if (wildcardQueued) {
@@ -4909,6 +5290,19 @@ function scheduleStep(stepIndex, time) {
     }
   }
 
+  // ---- OUTRO TAIL: silent until the scheduled stop actually lands ----
+  if (songStopping) { currentChaosGate = null; return; }
+
+  // ---- INTRO / OUTRO BAR: the gesture replaces everything ----
+  if (songGesture) {
+    currentChaosGate = null;
+    (songGesture.events[stepIndex] || []).forEach(ev => {
+      const t = feelTime(ev.track, stepIndex, time) + (ev.off || 0) * stepDuration();
+      play(ev.track, t, ev.accent || false, ev.opts || {}, ev.art || 'normal');
+    });
+    return;
+  }
+
   // ---- TAKE PLAYBACK: the recording replaces everything ----
   // Frozen material, so nothing below runs: no pattern, no chaos, no pads.
   if (takePlay) {
@@ -4933,7 +5327,9 @@ function scheduleStep(stepIndex, time) {
   const replaced = new Set();
   if (fillEntries) {
     fillEntries.forEach(hit => {
-      if (hit.replace) replaced.add(hit.track);
+      // 'mute' carves the track out of this step without putting anything
+      // there — a break is as much what it removes as what it adds.
+      if (hit.replace || hit.mute) replaced.add(hit.track);
     });
   }
 
@@ -5119,7 +5515,9 @@ function scheduleStep(stepIndex, time) {
   // Fills follow the feel of the track they belong to (a Dilla fill should drag too).
   if (fillEntries) {
     fillEntries.forEach(hit => {
-      play(hit.track, T(hit.track), hit.accent || false, hit.opts || {}, hit.art || 'normal');
+      if (hit.mute) return;
+      const t = T(hit.track) + (hit.off || 0) * stepDuration();
+      play(hit.track, t, hit.accent || false, hit.opts || {}, hit.art || 'normal');
     });
   }
 
@@ -5285,6 +5683,8 @@ function stopPlaying() {
   // dropped rather than saved half-finished.
   if (takeRec) { takeRec = null; takeUpdateUI(); }
   if (takePlay) takeStopPlayback();
+  songGesture = null; songQueued = null; songStopping = false;
+  songUpdateUI();
   if (schedulerId) clearInterval(schedulerId);
   schedulerId = null;
   visualQueue = [];
@@ -5854,6 +6254,8 @@ function bindControls() {
     'v': 'fill-short',
     'b': 'fill-tom-roll',
     'n': 'fill-funk',
+    'u': 'fill-relaunch',
+    'l': 'fill-drag',
   };
   const momKeyMap = {
     'm': 'drop',
@@ -5889,6 +6291,8 @@ function bindControls() {
       return;
     }
     if (k === 'y') { e.preventDefault(); toggleWildcardArm(); return; }
+    if (k === 'i') { e.preventDefault(); songFire('intro'); return; }
+    if (k === 'o') { e.preventDefault(); songFire('outro'); return; }
     if (keyMap[k]) {
       const pad = document.querySelector(`.pad.toggle[data-alter="${keyMap[k]}"]`);
       if (pad) pad.click();
@@ -6551,6 +6955,7 @@ TRACKS.forEach(t => updateArtIndicators(t.id));
 bindControls();
 bindBank();
 bindTakes();
+bindSong();
 loadMappings();
 bindMidiUI();
 
