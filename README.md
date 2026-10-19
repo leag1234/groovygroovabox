@@ -22,7 +22,7 @@ An original concept by **Gaël Duval**, developed since **May 2026**. First publ
 
 ### Live performance
 - **Alteration pads** (with keyboard shortcuts): hi-hat variants, kick variants, syncopation, ghost snare, clap on 2 and 4, snare echoes, and **Broken** (2000s R&B chopped-beat mode with a 2-bar A/B cycle)
-- **One-shot fills**: rock, short, tom roll, funk, **relaunch** (a double break — kick, then a flammed snare, twice, with the last 16th left empty so the groove snaps back onto the one), **drag** and **linear**. Plus a hold-to-drop pad.
+- **One-shot fills**: rock, short, tom roll, funk, **relaunch** (a real break: the whole kit cuts for the last two beats, leaving kick then a flammed snare, twice, before the groove slams back on the one), **drag** and **linear**. Plus a hold-to-drop pad.
 - **Intros and outros**: seven intros (stick count, crash drop-in, hi-hat build, tom build, snare roll, kick pulse, clave) and five outros (crash and stop, triple hit, tom descent, snare roll out, thin out). An intro plays one bar then hands over to the groove — pressing it from a stop starts the transport. An outro plays at the next bar, then stops. Keys `I` and `O`.
 - **Wildcard** (key `Y`): arm it, and on the next bar the machine draws one gesture from a shuffled bag of 12 (half-time, double-time, beat repeat, beat chop, pushed bar, kick-only breakdown, no-kick breakdown, stop-time, full stop, trap roll, snare build, one drop). You choose *when*, it chooses *what*. Exactly one bar, then back to the groove.
 

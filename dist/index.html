@@ -5039,20 +5039,19 @@ const FILLS = {
   // stroke, twice, with the last 16th left empty so the groove is thrown back
   // onto the one:  K . S S  |  K . S S .
   'fill-relaunch': {
+    // A real break, not a fill: silenceFrom cuts the whole kit for the last
+    // two beats, so the figure stands alone and the groove slams back on the
+    // one. With the hats still running underneath it was decoration, not a
+    // break in the flow.
+    silenceFrom: 8,
     steps: {
-      8:  [{ track: 'kick',  accent: true, replace: true },
-           { track: 'snare', mute: true }],
+      8:  [{ track: 'kick', accent: true }],
       // Flam: grace note a twelfth of a step early, then the stroke itself
-      9:  [{ track: 'snare', art: 'ghost', off: -0.12, replace: true },
+      9:  [{ track: 'snare', art: 'ghost', off: -0.12 },
            { track: 'snare', accent: true }],
-      10: [{ track: 'snare', mute: true }],
-      11: [{ track: 'snare', mute: true }, { track: 'kick', mute: true }],
-      12: [{ track: 'kick',  accent: true, replace: true },
-           { track: 'snare', mute: true }],
-      13: [{ track: 'snare', art: 'ghost', off: -0.12, replace: true },
+      12: [{ track: 'kick', accent: true }],
+      13: [{ track: 'snare', art: 'ghost', off: -0.12 },
            { track: 'snare', accent: true }],
-      14: [{ track: 'snare', mute: true }],
-      15: [{ track: 'snare', mute: true }, { track: 'kick', mute: true }],
     },
     minStart: 8,
   },
@@ -5133,7 +5132,7 @@ function queueFill(fillName) {
   // If we're somehow past step 15 (extremely unlikely between scheduler ticks),
   // queue for the next bar instead.
   if (state.playing && state.step <= 15) {
-    state.activeFill = fill.steps;
+    state.activeFill = fill;
   } else {
     state.queuedFill = fillName;
   }
@@ -5301,7 +5300,7 @@ function scheduleStep(stepIndex, time) {
       // Wildcard owns this bar: keep any queued fill for the next one
       state.activeFill = null;
     } else if (state.queuedFill) {
-      state.activeFill = FILLS[state.queuedFill].steps;
+      state.activeFill = FILLS[state.queuedFill];
       state.queuedFill = null;
     } else {
       state.activeFill = null;
@@ -5341,7 +5340,7 @@ function scheduleStep(stepIndex, time) {
   }
 
   // ---- Get fill hits for this step, if any ----
-  const fillEntries = state.activeFill ? state.activeFill[stepIndex] : null;
+  const fillEntries = state.activeFill ? state.activeFill.steps[stepIndex] : null;
   const replaced = new Set();
   if (fillEntries) {
     fillEntries.forEach(hit => {
@@ -5349,6 +5348,13 @@ function scheduleStep(stepIndex, time) {
       // there — a break is as much what it removes as what it adds.
       if (hit.replace || hit.mute) replaced.add(hit.track);
     });
+  }
+  // 'silenceFrom' cuts the whole kit from that step on, so only the fill's own
+  // hits sound. This is what separates a break — the flow actually stops —
+  // from a fill laid on top of a groove that keeps running underneath.
+  if (state.activeFill && state.activeFill.silenceFrom !== undefined &&
+      stepIndex >= state.activeFill.silenceFrom) {
+    TRACKS.forEach(t => replaced.add(t.id));
   }
 
   if (state.activeFill && stepIndex === 15) {
@@ -5479,21 +5485,25 @@ function scheduleStep(stepIndex, time) {
   // before the downbeat. The "hole" that makes the beat breathe (Darkchild).
   const brokenGap = alt.has('broken') && !state.brokenPhase && (stepIndex === 14 || stepIndex === 15);
   const hasHHAlter = alt.has('hh-closed') || alt.has('hh-disco') || alt.has('hh-open') || alt.has('hh-ride');
+  // The time-keeping hand honours 'replaced' like every other track. It did
+  // not, which is why a fill could never actually cut the groove.
+  const playHH   = (t, acc, art) => { if (!replaced.has('hh')) play('hh', t, acc, {}, art); };
+  const playRide = (t, acc, art) => { if (!replaced.has('ride')) play('ride', t, acc, {}, art); };
   if (brokenGap) {
     // skip all hats/ride this step
   } else if (hasHHAlter) {
     if (alt.has('hh-ride')) {
-      if (stepIndex % 2 === 0) play('ride', T('ride'), isBeat, {}, 'normal');
+      if (stepIndex % 2 === 0) playRide(T('ride'), isBeat, 'normal');
     } else if (alt.has('hh-disco')) {
       // Disco: closed on every quarter step, half-open ("tss") on every offbeat
-      if (stepIndex % 2 === 0) play('hh', T('hh'), isBeat, {}, 'closed');
-      else play('hh', T('hh'), false, {}, 'halfopen');
+      if (stepIndex % 2 === 0) playHH(T('hh'), isBeat, 'closed');
+      else playHH(T('hh'), false, 'halfopen');
     } else if (alt.has('hh-open')) {
       // Full open wash on 16ths offbeats — the long resonant sound
-      if (stepIndex % 2 === 0) play('hh', T('hh'), isBeat, {}, 'closed');
-      else play('hh', T('hh'), false, {}, 'open');
+      if (stepIndex % 2 === 0) playHH(T('hh'), isBeat, 'closed');
+      else playHH(T('hh'), false, 'open');
     } else if (alt.has('hh-closed')) {
-      if (stepIndex % 2 === 0) play('hh', T('hh'), isBeat, {}, 'closed');
+      if (stepIndex % 2 === 0) playHH(T('hh'), isBeat, 'closed');
     }
   } else {
     let hhArt = stepArt('hh', stepIndex);
@@ -5501,12 +5511,12 @@ function scheduleStep(stepIndex, time) {
     // for a whole beat. Both are fixed for the bar and repeat with the plan.
     if (hhArt === 'closed' && fig && fig.hatOpen.includes(stepIndex)) hhArt = 'open';
     if (hhArt && !(fig && fig.handDrop.includes(stepIndex))) {
-      play('hh', T('hh'), isBeat, {}, hhArt);
+      playHH(T('hh'), isBeat, hhArt);
     }
   }
 
   // ---- RIDE ----
-  if (!hasHHAlter && !brokenGap) {
+  if (!hasHHAlter && !brokenGap && !replaced.has('ride')) {
     const rideArt = stepArt('ride', stepIndex);
     // Same hand as the hats, so it lifts on the same beat
     if (rideArt && !(fig && fig.handDrop.includes(stepIndex))) {
