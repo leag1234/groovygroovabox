@@ -179,6 +179,12 @@ in between halfway inside their swung 8th (`swingOffsetSteps`). Bank entries
 carry `swingScale: 'mpc'`; entries without it are converted on recall by
 `swingFromLegacy` (50 + old/2).
 
+**A style brings its tempo and swing** (`applyStyleDefaults`, called from
+`loadPattern` and at boot). Stopped: tempo, swing and 1/16 · 1/8. Playing: swing
+and resolution only — Gaël's call (2026-11-12): a live pattern change must not
+make the BPM jump. Bank recalls set `state.pattern` directly and never go
+through `loadPattern`, so a saved setup keeps its own values.
+
 **Takes replay unswung grid time.** Recorded positions already contain the
 swing the scheduler applied, so `scheduleStep` hands `takeScheduleStep` the
 grid time minus this step's swing. Before that, a take recorded with swing was
@@ -267,10 +273,9 @@ bars.
 3. **Trap has no hat rolls**, its defining feature, because the 16-step grid
    cannot express triplets or 32nds. Would need sub-step events, which `off`
    now makes thinkable.
-4. **Blues Shuffle needs Swing 1/8 at 66 %**, UK Garage Swing 1/16 around
-   58 %. Loading a pattern does not set swing (deliberate so far: switching
-   live must not move the feel), so nothing tells the user except the README
-   and the pattern comments.
+4. **The per-style swing values in `STYLE_SWING` are starting points**, not
+   yet confirmed by ear (Shuffle 66/8, Second Line 62/8, Hip-hop 56/8, Funk
+   and Breakbeat 54/16, Garage 58/16, everything else straight).
 5. **No export/import of the bank or takes.** `localStorage` is per-origin, so
    setups saved on `localhost` do not follow to `indidea.org` or to the
    downloaded file. A JSON export would fix it and is probably a prerequisite

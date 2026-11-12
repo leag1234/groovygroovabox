@@ -20,6 +20,7 @@ An original concept by **Gaël Duval**, developed since **May 2026**. First publ
 - 23 built-in patterns: rock, funk, breakbeat, blues shuffle, Motown, punk / D-beat, New Orleans second line, disco, house, UK garage 2-step, drum & bass, hip-hop, 2000s R&B, trap, reggae, dancehall, Afro-Cuban (son, rumba, cha-cha), bossa, samba, Bo Diddley and Afrobeat
 - Pattern switching **now** or **on the next bar**, tempo 40 to 220 BPM, swing, count-in, metronome
 - **Swing** in the MPC / LinnDrum convention: 50 % is straight, 54 % loosens, 58–62 % swings, 66 % is a triplet, 75 % is dotted. The **1/16 · 1/8** button picks what gets swung: 1/16 swings the odd 16ths (funk, garage, house), 1/8 swings the offbeat 8ths and carries the 16ths with them (shuffle, jazz, boom bap on 8th hats). Blues Shuffle wants 1/8 at 66 %.
+- **Each style brings its tempo and swing.** Choosing a pattern while stopped sets its tempo, swing and 1/16 · 1/8 (Blues Shuffle 95 BPM, 1/8 at 66 %; Funk 100, 1/16 at 54 %; Drum & Bass 174, straight…). Changing pattern while playing brings the swing but keeps your tempo, so a live switch never makes the BPM jump. A saved setup always recalls its own values.
 - The hi-hat is one instrument: an open or half-open hat rings until the next hat closes it (choke group, as on every drum machine since the 808)
 
 ### Live performance

@@ -3045,11 +3045,39 @@ try {
 // ============================================================
 
 // Load a pattern into the active state and refresh the UI completely.
+// Swing a style is played with, as [percent (MPC scale), 16 or 8]. Which notes
+// get swung is a property of the style, not a taste: a shuffle swings its
+// 8ths, a funk groove its 16ths. Styles not listed are straight.
+// Starting points, to be judged by ear.
+const STYLE_SWING = {
+  shuffle:    [66, 8],    // triplet lope
+  secondline: [62, 8],    // street-parade swing, between straight and triplet
+  hiphop:     [56, 8],    // boom bap on 8th hats: lazy, not shuffled
+  funk:       [54, 16],   // Linn's "loosens straight 16ths"
+  breakbeat:  [54, 16],
+  garage:     [58, 16],   // the 2-step skip
+};
+
+// A style brings its tempo and its swing. Stopped, it sets all three: that is
+// choosing what to play. Playing, it keeps the tempo — a live change of
+// pattern must not make the BPM jump — and brings only the swing, which
+// belongs to the groove itself. Bank recalls do not come through here: a
+// saved setup keeps its own values.
+function applyStyleDefaults(patternId) {
+  const p = PATTERNS[patternId];
+  if (!p || patternId === 'empty') return;
+  if (!state.playing && typeof p.bpm === 'number') bankDrive('bpm-slider', p.bpm);
+  const [pct, res] = STYLE_SWING[patternId] || [50, 16];
+  bankDrive('swing', pct);
+  setSwingRes(res);
+}
+
 function loadPattern(patternId) {
   const p = PATTERNS[patternId];
   if (!p) return;
   state.pattern = JSON.parse(JSON.stringify(p.pattern));
   state.currentPattern = patternId;
+  applyStyleDefaults(patternId);
 
   // Re-render all steps
   document.querySelectorAll('.step').forEach(el => {
@@ -7091,6 +7119,8 @@ document.getElementById('calib-box').addEventListener('click', e => {
 buildSequencer();
 TRACKS.forEach(t => updateArtIndicators(t.id));
 bindControls();
+// The box opens on a style: open it at that style's tempo and swing.
+applyStyleDefaults(state.currentPattern);
 bindBank();
 bindTakes();
 bindSong();
