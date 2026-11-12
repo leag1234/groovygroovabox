@@ -200,6 +200,14 @@ does not add groove. Dynamics (`dynamicsWeight`, `dynamicsDriftAdvance`):
 At 0 everything is exactly the machine: verified all weights 1, all hits on
 the grid. Default is 50 %. Chaos and the setup bank are unchanged.
 
+**The hierarchy never touches accents or written gestures.** Found by Gaël's
+ear: the relaunch snares (accented, on the e of 3 and 4) came out ~3 dB under
+the backbeat at Dynamics 50. `dynamicsWeight` returns 1 for accented hits, and
+`playWritten` plays fills, intros, outros and wildcard hits with no position
+(takes record that as `p: null`). Measured after: relaunch and Syncope snares
+within 1 dB of the backbeat. Synth kits' ghost is now the kit's own snare
+8 dB down; it was a separate noise burst 17–25 dB under the snare.
+
 **A style also brings its Feel** (`STYLE_FEEL`), and Intensity back to 100 %.
 Intensity is capped at 150 % (it went to 300 %, where Dilla put the backbeat
 0.6 of a step late). Saved intensities above 150 are clamped on load.
@@ -217,7 +225,8 @@ kit gets the same treatment:
   0.1 dB across the nine kits. The headroom is not optional: aligned
   transients and raised quiet kits took the Salamander funk groove to
   +3.5 dBFS; with it every kit peaks between −0.9 and −4.8 dBFS;
-- ghost notes are set 12 dB under the kit's snare (cap ±20 dB): Salamander,
+- ghost notes are set 8 dB under the kit's snare (cap ±20 dB; 12 at first,
+  too buried by Gaël's ear): Salamander,
   808 and Jazz ghosts were louder than their snare.
 Side effect: sampled kits are about 4 dB quieter than the median kit was.
 Not fixed: the synth kit `studio` peaks at +2.3 dBFS on the same groove (it
@@ -228,7 +237,7 @@ did before), Jazz has DC offset on snare and toms, and the low tom (layer 0) is 
 energy above 2 kHz). They are now `808/CH.WAV`, the set's only closed hat (93 %),
 same source and terms as the rest of the kit. The snare's soft layer and its
 ghost were a snappy-off snare (1 % above 2 kHz, a thud); the soft layer was
-dropped and the ghost is the default snare, set 12 dB down at load.
+dropped and the ghost is the default snare, set 8 dB down at load.
 
 **Takes replay unswung grid time.** Recorded positions already contain the
 swing the scheduler applied, so `scheduleStep` hands `takeScheduleStep` the

@@ -2169,12 +2169,16 @@ function dynPosition(track, pos) {
 }
 
 // Relative level (0..1] for a hit at grid position pos. 1 when Dynamics is
-// off, when the hit is not on the grid (live pads, MIDI in), for ghost notes
-// (their sample is quiet already) and for toms and crash (fills carry their
-// own accents).
-function dynamicsWeight(track, art, pos) {
+// off; when the hit is not on the grid (live pads, MIDI in) or is part of a
+// written gesture (fills, intros, outros, wildcards: scheduleStep plays them
+// with no position); for accented hits — an accent is a stroke the music
+// asks to be strong wherever it falls, like the relaunch snares on the e of
+// 3 and 4 or a Syncope backbeat, and the hierarchy used to turn them ~3 dB
+// down at 50 %; for ghost notes (their own level is set at load); and for
+// toms and crash.
+function dynamicsWeight(track, art, pos, accent = false) {
   const d = state.humanize || 0;
-  if (d <= 0 || pos == null || art === 'ghost') return 1;
+  if (d <= 0 || pos == null || accent || art === 'ghost') return 1;
   const table = DYN_DB[track];
   if (!table) return 1;
   const db = table[dynPosition(track, pos)] || 0;
@@ -3245,7 +3249,7 @@ function takeCapture(track, time, accent, opts, art) {
   if (s < 0 || s >= TAKE_BARS * STEPS) return;
   takeRec.events.push({ s: +s.toFixed(4), track, art, accent: !!accent,
                         pitch: (opts && opts.pitch) || undefined,
-                        p: currentStepPos == null ? undefined : currentStepPos });
+                        p: currentStepPos });   // null: a written gesture, full weight
 }
 
 function takeFinish(events) {
@@ -3334,7 +3338,7 @@ function takeScheduleStep(time) {
     // A hit swung or pushed across a step line still belongs to the position
     // it was written on, so it keeps that position's dynamic weight.
     const here = currentStepPos;
-    if (ev.p != null) currentStepPos = ev.p;
+    if (ev.p !== undefined) currentStepPos = ev.p;   // takes before positions: the step
     play(ev.track, t, ev.accent, ev.pitch ? { pitch: ev.pitch } : {}, ev.art);
     currentStepPos = here;
   });
@@ -3354,7 +3358,7 @@ function takeExportMidi(id) {
   entry.events.forEach(ev => {
     toMidiEvents(ev.track, ev.s * secPerStep, ev.accent,
                  ev.pitch ? { pitch: ev.pitch } : {}, ev.art,
-                 ev.p != null ? ev.p : null)
+                 ev.p !== undefined ? ev.p : Math.round(ev.s) % STEPS)
       .forEach(m => midiEvents.push(m));
   });
   midiEvents.sort((a, b) => a.time - b.time);
@@ -4814,7 +4818,7 @@ const SAMPLE_MAIN_ART = {                  // the articulation a track is measur
 };
 const SAMPLE_GAIN_LIMIT_DB = 8;
 const GHOST_GAIN_LIMIT_DB = 20;            // ghosts can be normalised hot: Salamander's needs -15.5
-const GHOST_BELOW_SNARE_DB = 12;
+const GHOST_BELOW_SNARE_DB = 8;               // was 12: too buried in the mix (Gaël, by ear)
 // Lining transients up makes simultaneous hits sum to higher peaks, and the
 // quiet kits get raised: without headroom the Salamander funk groove peaked at
 // +3.5 dBFS (it was -0.8). 4 dB brings every kit back to about 0 or under.
@@ -4980,7 +4984,7 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   }
   // Dynamics: the metric weight of this position, plus a hair of per-hit
   // variation. Both are exactly 1 when the slider is at 0.
-  const dynW = dynamicsWeight(track, art, currentStepPos);
+  const dynW = dynamicsWeight(track, art, currentStepPos, accent);
   let v = state.volume[track] * dynW * dynamicsGainVariation();
 
   // Samples kit fast path: if we have a sample for this exact (track, articulation),
@@ -5022,8 +5026,11 @@ function play(track, time, accent=false, opts={}, articulation=null) {
       kit.snare(time, Math.min(1, v * 1.15), true);
       playRimAttack(time, v);
     } else if (art === 'ghost') {
-      // Ghost note: very quiet, no accent, slight muffling
-      playGhostSnare(time, v);
+      // Ghost note: a soft stroke on the same drum, GHOST_BELOW_SNARE_DB
+      // under it — the rule the sampled kits follow. It used to be a separate
+      // noise burst 17 to 25 dB under the synth snares,
+      // too far down to be heard in the groove.
+      kit.snare(time, v * Math.pow(10, -GHOST_BELOW_SNARE_DB / 20), false);
     } else if (art === 'crossstick') {
       // Cross-stick: short woody click, no body
       playCrossStick(time, v);
@@ -5097,17 +5104,6 @@ function playRimAttack(time, v) {
   const og = envGain(time, 0.001, 0.05, v * 0.3);
   o.connect(og).connect(masterGain());
   o.start(time); o.stop(time + 0.06);
-}
-
-// Ghost snare: quiet with dampened body (closer to a brush stroke)
-function playGhostSnare(time, v) {
-  // Just a quiet noise burst, no tonal body
-  const n = noise(time, 0.08);
-  const bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 0.7;
-  const g = envGain(time, 0.001, 0.06, v * 0.25);
-  n.connect(bp).connect(g).connect(masterGain());
-  n.start(time); n.stop(time + 0.1);
 }
 
 function playFootClose(time, v) {
@@ -5219,7 +5215,7 @@ function toMidiEvents(track, relTime, accent, opts, articulation, pos = null) {
   const velMul = mapping.velMul || 1.0;
   const baseV = accent ? 110 : 90;
   const velocity = Math.max(15, Math.min(127,
-    Math.round(state.volume[track] * baseV * velMul * dynamicsWeight(track, articulation, pos))
+    Math.round(state.volume[track] * baseV * velMul * dynamicsWeight(track, articulation, pos, accent))
   ));
 
   const out = [];
@@ -5538,6 +5534,15 @@ function setSwingRes(res) {
   }
 }
 
+// A hit from a written gesture (fill, intro, outro, wildcard): its levels are
+// in its own accents, so the Dynamics metric hierarchy stays out of it.
+function playWritten(track, time, accent, opts, art) {
+  const pos = currentStepPos;
+  currentStepPos = null;
+  play(track, time, accent, opts, art);
+  currentStepPos = pos;
+}
+
 function scheduleStep(stepIndex, time) {
   // Structural pause gate: every play() issued while scheduling this step is
   // silenced if the current chaos pause plan says so (whole-kit breaks).
@@ -5620,7 +5625,7 @@ function scheduleStep(stepIndex, time) {
     currentChaosGate = null;
     (songGesture.events[stepIndex] || []).forEach(ev => {
       const t = feelTime(ev.track, stepIndex, time) + (ev.off || 0) * stepDuration();
-      play(ev.track, t, ev.accent || false, ev.opts || {}, ev.art || 'normal');
+      playWritten(ev.track, t, ev.accent || false, ev.opts || {}, ev.art || 'normal');
     });
     return;
   }
@@ -5642,7 +5647,7 @@ function scheduleStep(stepIndex, time) {
     const evs = wildcardActive.events[stepIndex] || [];
     evs.forEach(ev => {
       const t = feelTime(ev.track, stepIndex, time) + (ev.off || 0) * stepDuration();
-      play(ev.track, t, ev.accent || false, {}, ev.art || 'normal');
+      playWritten(ev.track, t, ev.accent || false, {}, ev.art || 'normal');
     });
     return;
   }
@@ -5853,7 +5858,7 @@ function scheduleStep(stepIndex, time) {
     fillEntries.forEach(hit => {
       if (hit.mute) return;
       const t = T(hit.track) + (hit.off || 0) * stepDuration();
-      play(hit.track, t, hit.accent || false, hit.opts || {}, hit.art || 'normal');
+      playWritten(hit.track, t, hit.accent || false, hit.opts || {}, hit.art || 'normal');
     });
   }
 
