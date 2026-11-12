@@ -221,8 +221,14 @@ kit gets the same treatment:
   808 and Jazz ghosts were louder than their snare.
 Side effect: sampled kits are about 4 dB quieter than the median kit was.
 Not fixed: the synth kit `studio` peaks at +2.3 dBFS on the same groove (it
-did before), Jazz has DC offset on snare and toms, the 808 closed hat is not
-a hat (3 % of its energy above 2 kHz), and the low tom (layer 0) is never played by any kit.
+did before), Jazz has DC offset on snare and toms, and the low tom (layer 0) is never played by any kit.
+
+**The 808 hi-hat was a conga.** Fischer's set names the High Congas `HC`;
+`kits/tr808/hh__closed__*` and `hh__foot` were taken from `808hc` (3 % of the
+energy above 2 kHz). They are now `808/CH.WAV`, the set's only closed hat (93 %),
+same source and terms as the rest of the kit. The snare's soft layer and its
+ghost were a snappy-off snare (1 % above 2 kHz, a thud); the soft layer was
+dropped and the ghost is the default snare, set 12 dB down at load.
 
 **Takes replay unswung grid time.** Recorded positions already contain the
 swing the scheduler applied, so `scheduleStep` hands `takeScheduleStep` the

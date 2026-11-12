@@ -2,4 +2,4 @@ name: Roland TR-808 Sound Sample Set
 author: Michael Fischer (Technopolis), 1994
 license: Free of charge, no explicit redistribution terms
 source-url: https://github.com/tidalcycles/Dirt-Samples/blob/master/808/TR808.TXT
-note: Via Dirt-Samples. TR808.TXT states the set is free but grants no redistribution or sublicensing terms.
+note: Via Dirt-Samples. TR808.TXT states the set is free but grants no redistribution or sublicensing terms. The closed and foot hat are 808/CH.WAV, the set's only closed hi-hat (until 2026-11-12 they were a High Conga from 808hc, mislabelled). The snare's soft layer and ghost, a snappy-off snare, were replaced by the default snare.
