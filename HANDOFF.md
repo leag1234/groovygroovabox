@@ -118,7 +118,9 @@ articulation. `GM_MAP` maps (track, articulation) to General MIDI.
 
 **Persistence**, all in `localStorage` under `groovygroova:`:
 `bank` (setups), `takes`, `av-offset`, `display-comp`, `feel-mode`,
-`feel-intensity`, `humanize`, `chaos`, `midi-mappings`.
+`feel-intensity`, `humanize`, `chaos`, `midi-mappings`. (`humanize` and
+`chaos` are purged at load, not restored. `state.humanize` is now the
+**Dynamics** slider; the name was kept so saved setups recall it.)
 
 ---
 
@@ -138,7 +140,7 @@ bar. Nothing ever repeated, so nothing read as intentional. Now `rollChaosFigure
 rolls one bar's deviations once into a 4-bar plan (`rollChaosPlan`), and that
 plan is replayed identically twice before a fresh one is drawn —
 `CHAOS_PLAN_BARS = 4`, `CHAOS_PLAN_REPEATS = 2`, so a new figure every 8 bars,
-about 17 s at 110 BPM. Humanize still jitters velocity and micro-timing per hit
+about 17 s at 110 BPM. Dynamics still varies level and pitch a hair per hit
 on top, which is what stops a repeated figure sounding like a loop.
 **Do not reintroduce per-hit randomness.** `chaosP()` was deleted for this
 reason; if you see it come back, something regressed.
@@ -184,6 +186,26 @@ carry `swingScale: 'mpc'`; entries without it are converted on recall by
 and resolution only — Gaël's call (2026-11-12): a live pattern change must not
 make the BPM jump. Bank recalls set `state.pattern` directly and never go
 through `loadPattern`, so a saved setup keeps its own values.
+
+**Dynamics replaced Humanize** (2026-11-12, agreed with Gaël). Humanize rolled
+an independent random timing and velocity offset per hit: white noise, kick
+and hat on the same step flammed by up to 13.6 ms, and the research says that
+does not add groove. Dynamics (`dynamicsWeight`, `dynamicsDriftAdvance`):
+1. a deterministic level per metric position (`DYN_DB`, scaled in dB by the
+   slider), known through `currentStepPos`, which the scheduler sets around
+   each `scheduleStep` and takes store per event (`p`) so a swung hit keeps
+   its written position; live pads and MIDI in have no position, full weight;
+2. that weight picks the sample layer (under 0.85, the softest; the bottom
+   layer of a 3-layer set was never played before) and the MIDI velocity;
+3. a timing drift shared by every track on a step, sum of three AR(1) at
+   poles 0.6 / 0.95 / 0.995, 2.5 ms SD at 100 %. Measured: lag-1
+   autocorrelation 0.86, lag-64 0.22, kick-vs-hat flam 0.
+At 0 everything is exactly the machine: verified all weights 1, all hits on
+the grid. Default is 50 %. Chaos and the setup bank are unchanged.
+
+**A style also brings its Feel** (`STYLE_FEEL`), and Intensity back to 100 %.
+Intensity is capped at 150 % (it went to 300 %, where Dilla put the backbeat
+0.6 of a step late). Saved intensities above 150 are clamped on load.
 
 **Takes replay unswung grid time.** Recorded positions already contain the
 swing the scheduler applied, so `scheduleStep` hands `takeScheduleStep` the
@@ -266,10 +288,12 @@ bars.
 1. **The Ghost pad still uses unlocked randomness** — `Math.random() < 0.6` per
    hit, outside the chaos figure system. Its positions (2, 6, 10, 14) are
    idiomatic; only the flicker is noise. Same fix as the chaos figures.
-2. **Velocity is random, not shaped.** Humanize jitters velocity; musically what
-   matters more is a stable hierarchy — strong on 1 and 3, medium on beats,
-   quiet on ghosts. Gaël rated this the next-biggest musical win after the
-   locked figures. Not started.
+2. **Velocity is now shaped (Dynamics), but the weights in `DYN_DB` are a
+   first guess**, not yet confirmed by ear. Hats and ride: beat 0, & −4, e/a
+   −9 dB at 100 %; kick 0/−1/−2/−4; snare backbeat 0, elsewhere −3/−5; ghost
+   notes untouched. There are no true round-robins — the kits ship 2–3 files
+   per sound, used as velocity layers — so the anti-machine-gun is a ±1 dB,
+   ±10 cent per-hit variation, a stopgap until kits have alternates.
 3. **Trap has no hat rolls**, its defining feature, because the 16-step grid
    cannot express triplets or 32nds. Would need sub-step events, which `off`
    now makes thinkable.

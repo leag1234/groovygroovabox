@@ -303,7 +303,7 @@
     color: var(--ink-dim);
     text-transform: uppercase;
   }
-  /* Feel rows need wider labels ("Intensity", "Humanize") */
+  /* Feel rows need wider labels ("Intensity", "Dynamics") */
   .knob-row.feel-knob {
     grid-template-columns: 54px 1fr 32px;
   }
@@ -1704,7 +1704,7 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
         <div class="stab-col">
           <h3 title="Microtiming: per-track early/late offsets relative to the grid. Positive = laid-back, negative = pushing.">Feel</h3>
           <div class="feel-select">
-            <div class="feel-mode-group" title="The Intensity slider scales ONLY the offsets of the selected Feel preset. It has no effect on Humanize, Chaos or Swing.">
+            <div class="feel-mode-group" title="Each style sets its own Feel when you choose it; pick another here to override. The Intensity slider scales ONLY the offsets of the selected Feel preset. It has no effect on Dynamics, Chaos or Swing.">
               <select id="feel-dropdown">
                 <optgroup label="Neutral">
                   <option value="straight">Straight (Machine)</option>
@@ -1728,9 +1728,9 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
                   <option value="jazzshuffle">Jazz Shuffle</option>
                 </optgroup>
               </select>
-              <div class="knob-row feel-knob feel-intensity-row" title="Scales the offsets of the selected Feel preset only. 0% = preset cancelled (straight grid), 100% = nominal, 300% = strongly exaggerated (useful for A/B testing subtle presets).">
+              <div class="knob-row feel-knob feel-intensity-row" title="Scales the offsets of the selected Feel preset only. 0% = preset cancelled (straight grid), 100% = nominal, 150% = exaggerated. Choosing a style puts it back to 100%.">
                 <span class="knob-label">Intensity</span>
-                <input type="range" class="slider" id="feel-intensity" min="0" max="300" value="100">
+                <input type="range" class="slider" id="feel-intensity" min="0" max="150" value="100">
                 <span class="knob-val" id="feel-intensity-val">100%</span>
               </div>
               <div class="feel-hint" id="feel-hint">Fully quantized. Techno / EDM / DnB reference.</div>
@@ -1738,19 +1738,19 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
           </div>
         </div>
         <div class="stab-col">
-          <h3 title="Random processing, independent from the Feel preset and its Intensity. Both are re-rolled on every hit.">Random</h3>
+          <h3 title="How it is played: Dynamics shapes the touch, Chaos varies the notes. Independent from the Feel preset and from Swing.">Performance</h3>
           <div class="feel-select">
-            <div class="knob-row feel-knob" title="Humanize: random micro-jitter on timing and velocity, re-rolled on every hit — like a drummer, no two bars identical. Independent from the Feel preset; adds on top of it.">
-              <span class="knob-label">Humanize</span>
-              <input type="range" class="slider" id="humanize" min="0" max="100" value="0">
-              <span class="knob-val" id="humanize-val">0%</span>
+            <div class="knob-row feel-knob" title="Dynamics: how a drummer's touch shapes the groove. The beat is played strong, the '&amp;' lighter, the 16ths in between lighter still; light hits use the soft sample layers; every hit varies a hair in level and pitch so repeated samples stop sounding like a machine gun; and the timing wanders slowly like one drummer's clock, the same for every limb. 0% = the machine, every hit identical and on the grid.">
+              <span class="knob-label">Dynamics</span>
+              <input type="range" class="slider" id="humanize" min="0" max="100" value="50">
+              <span class="knob-val" id="humanize-val">50%</span>
             </div>
             <div class="knob-row feel-knob" title="Chaos: macro-rhythmic randomness — surprise ghost notes, dropped hits, rim swaps, opened hats. The kick is never touched: it is the skeleton, and moving it turns the groove to mush. Above 40%, also carves STRUCTURED BREAKS into the groove (2000s R&B style): a 4-bar pause plan is rolled, locked and repeated twice before changing, so holes sound arranged, not accidental. Independent from the Feel preset.">
               <span class="knob-label">Chaos</span>
               <input type="range" class="slider" id="chaos" min="0" max="100" value="0">
               <span class="knob-val" id="chaos-val">0%</span>
             </div>
-            <button id="feel-reset" class="feel-reset-btn" title="Reset all groove processing to neutral: Feel=Straight, Intensity=100%, Humanize=0, Chaos=0, Swing=0, and switch off all active alteration pads (Broken, Ghost, Syncope, ...). Clears saved values too.">Reset groove</button>
+            <button id="feel-reset" class="feel-reset-btn" title="Reset all groove processing to neutral: Feel=Straight, Intensity=100%, Dynamics=0 (the machine), Chaos=0, Swing=50% (straight), and switch off all active alteration pads (Broken, Ghost, Syncope, ...). Clears saved values too.">Reset groove</button>
           </div>
         </div>
       </div>
@@ -2137,32 +2137,102 @@ function getFeelOffset(track, stepIndex) {
 
 // Convenience: returns the scheduled audio time for (track) at (stepIndex),
 // given the base grid time for that step. Applies the current feel/microtiming
-// plus (if enabled) the Humanize random jitter.
+// plus the Dynamics drift (shared by every track, see below).
 function feelTime(track, stepIndex, time) {
   return time + stepDuration() * (getFeelOffset(track, stepIndex) + humanTimeJitter(track, stepIndex));
 }
 
-// ---- Humanize: per-hit random jitter ----
+// ============================================================
+// DYNAMICS (the slider still lives in state.humanize — same key in setups)
+// ============================================================
+// Replaces the old Humanize, which rolled an independent random timing and
+// velocity offset for every hit. That jitter was white noise, uncorrelated
+// from one hit to the next and from one limb to the other, so a kick and a
+// hat on the same step flammed by up to 13 ms. The research is consistent
+// that this does not add groove (Hennig 2011; Senn 2016, 2018; Linn), and
+// that what a drummer actually does is play a stable dynamic hierarchy.
+// Dynamics does three things, all at 0 when the slider is at 0 (the machine):
+//   1. Velocity follows the metric position: the beat is strong, the "&"
+//      lighter, the 16ths in between lighter still. Deterministic — the same
+//      position always gets the same weight.
+//   2. The weight picks the sample layer, so the soft layers finally get
+//      played, and every hit gets a tiny gain and pitch variation so a
+//      repeated sample stops sounding like a machine gun.
+//   3. Timing drifts like one drummer's clock: a slow, correlated wander
+//      shared by every track, never one limb against another.
+
 // Approximate gaussian in [-1, 1] (sum of 3 uniforms, bell-shaped).
 function gaussRand() {
   return (Math.random() + Math.random() + Math.random()) / 1.5 - 1;
 }
 
-// Timing jitter as a fraction of a step. Max ±0.07 step at 100%
-// (±8.75 ms at 120 BPM). Anchor hits (kick on beats 1 and 3) jitter
-// much less — real drummers keep the downbeat solid.
-function humanTimeJitter(track, stepIndex) {
-  const h = state.humanize || 0;
-  if (h <= 0) return 0;
-  const anchor = (track === 'kick' && stepIndex % 8 === 0) ? 0.35 : 1;
-  return gaussRand() * 0.07 * (h / 100) * anchor;
+// Level, in dB at Dynamics 100, by metric position:
+// one (step 0), beat (4, 8, 12), and (2, 6, 10, 14), e (odd steps).
+// The snare's backbeat is its strong position, not the beat.
+const DYN_DB = {
+  hh:      { one: 0,  beat: 0,  and: -4, e: -9 },
+  ride:    { one: 0,  beat: 0,  and: -4, e: -9 },
+  cowbell: { one: 0,  beat: 0,  and: -3, e: -7 },
+  kick:    { one: 0,  beat: -1, and: -2, e: -4 },
+  snare:   { back: 0, beat: -3, and: -3, e: -5 },
+  clap:    { back: 0, beat: -3, and: -3, e: -5 },
+};
+
+function dynPosition(track, pos) {
+  if ((track === 'snare' || track === 'clap') && (pos === 4 || pos === 12)) return 'back';
+  if (pos === 0) return 'one';
+  if (pos % 4 === 0) return 'beat';
+  if (pos % 2 === 0) return 'and';
+  return 'e';
 }
 
-// Velocity jitter multiplier. Max ±25% at 100%.
-function humanVelJitter() {
-  const h = state.humanize || 0;
-  if (h <= 0) return 1;
-  return 1 + gaussRand() * 0.25 * (h / 100);
+// Relative level (0..1] for a hit at grid position pos. 1 when Dynamics is
+// off, when the hit is not on the grid (live pads, MIDI in), for ghost notes
+// (their sample is quiet already) and for toms and crash (fills carry their
+// own accents).
+function dynamicsWeight(track, art, pos) {
+  const d = state.humanize || 0;
+  if (d <= 0 || pos == null || art === 'ghost') return 1;
+  const table = DYN_DB[track];
+  if (!table) return 1;
+  const db = table[dynPosition(track, pos)] || 0;
+  return Math.pow(10, (db * d / 100) / 20);
+}
+
+// Per-hit timbre variation against the machine-gun effect: ±1 dB and about
+// ±10 cents at Dynamics 100. Sound, not rhythm: nothing moves in time.
+function dynamicsGainVariation() {
+  const d = state.humanize || 0;
+  return d > 0 ? Math.pow(10, gaussRand() * 1.0 * (d / 100) / 20) : 1;
+}
+function dynamicsRateVariation() {
+  const d = state.humanize || 0;
+  return d > 0 ? 1 + gaussRand() * 0.006 * (d / 100) : 1;
+}
+
+// The drummer's clock: a sum of three AR(1) processes at different time
+// scales (a few steps, a bar or two, several bars), an inexpensive stand-in
+// for the 1/f-like correlations measured in real drumming. One value per
+// step, shared by every track. About 2.5 ms standard deviation at 100.
+const DRIFT_POLES = [0.6, 0.95, 0.995];
+const DRIFT_SD_MS = 2.5;
+let driftState = [0, 0, 0];
+let driftNow = 0;      // ms, for the step being scheduled
+let currentStepPos = null;   // grid position of the step being scheduled
+
+function dynamicsDriftAdvance() {
+  driftState = driftState.map((x, i) => {
+    const a = DRIFT_POLES[i];
+    return a * x + Math.sqrt(1 - a * a) * gaussRand() * 3;   // gaussRand sd is 1/3
+  });
+  driftNow = driftState.reduce((s, x) => s + x, 0) / Math.sqrt(3) * DRIFT_SD_MS;
+}
+
+// Timing offset, as a fraction of a step. Same for every track on a step.
+function humanTimeJitter(track, stepIndex) {
+  const d = state.humanize || 0;
+  if (d <= 0) return 0;
+  return (driftNow * d / 100) / 1000 / stepDuration();
 }
 
 
@@ -2979,8 +3049,8 @@ const state = {
   swingRes: 16,    // 16: swing the odd 16ths. 8: swing the offbeat 8ths.
   avOffsetMs: 0,   // Visual-vs-audio sync offset in ms. Positive = visual later.
   feelMode: 'straight',      // one of FEEL_MODES keys
-  feelIntensity: 100,        // 0-300 (percent). Scales all microtiming offsets.
-  humanize: 0,               // 0-100. Random timing + velocity jitter per hit.
+  feelIntensity: 100,        // 0-150 (percent). Scales all microtiming offsets.
+  humanize: 50,              // 0-100. DYNAMICS (key kept for setups): metric velocity, layers, shared drift.
   chaos: 0,                  // 0-100. Macro randomness: ghosts, drops, displaced kicks.
   brokenPhase: false,        // toggled every bar while 'broken' alteration is on (A/B cycle)
   chaosBarIdx: -1,           // position in the 4-bar structural pause plan (chaos >= 40%)
@@ -3049,6 +3119,15 @@ try {
 // get swung is a property of the style, not a taste: a shuffle swings its
 // 8ths, a funk groove its 16ths. Styles not listed are straight.
 // Starting points, to be judged by ear.
+// The Feel preset a style is played with (FEEL_MODES key). Not listed: straight.
+const STYLE_FEEL = {
+  rock: 'human', funk: 'purdie', disco: 'disco', hiphop: 'boombap',
+  reggae: 'reggae', breakbeat: 'human', bodiddley: 'human', son: 'human',
+  bossa: 'human', samba: 'human', rumba: 'human', chacha: 'human',
+  shuffle: 'jazzshuffle', motown: 'motown', punk: 'punk', secondline: 'nola',
+  afrobeat: 'afrobeat',
+};
+
 const STYLE_SWING = {
   shuffle:    [66, 8],    // triplet lope
   secondline: [62, 8],    // street-parade swing, between straight and triplet
@@ -3058,10 +3137,10 @@ const STYLE_SWING = {
   garage:     [58, 16],   // the 2-step skip
 };
 
-// A style brings its tempo and its swing. Stopped, it sets all three: that is
+// A style brings its tempo, its swing and its feel. Stopped, it sets them all: that is
 // choosing what to play. Playing, it keeps the tempo — a live change of
-// pattern must not make the BPM jump — and brings only the swing, which
-// belongs to the groove itself. Bank recalls do not come through here: a
+// pattern must not make the BPM jump — and brings only the swing and feel, which
+// belong to the groove itself. Bank recalls do not come through here: a
 // saved setup keeps its own values.
 function applyStyleDefaults(patternId) {
   const p = PATTERNS[patternId];
@@ -3070,6 +3149,8 @@ function applyStyleDefaults(patternId) {
   const [pct, res] = STYLE_SWING[patternId] || [50, 16];
   bankDrive('swing', pct);
   setSwingRes(res);
+  bankDrive('feel-dropdown', STYLE_FEEL[patternId] || 'straight');
+  bankDrive('feel-intensity', 100);
 }
 
 function loadPattern(patternId) {
@@ -3181,7 +3262,8 @@ function takeCapture(track, time, accent, opts, art) {
   const s = (time - takeRec.startTime) / takeRec.stepDur;
   if (s < 0 || s >= TAKE_BARS * STEPS) return;
   takeRec.events.push({ s: +s.toFixed(4), track, art, accent: !!accent,
-                        pitch: (opts && opts.pitch) || undefined });
+                        pitch: (opts && opts.pitch) || undefined,
+                        p: currentStepPos == null ? undefined : currentStepPos });
 }
 
 function takeFinish(events) {
@@ -3267,7 +3349,12 @@ function takeScheduleStep(time) {
   takePlay.events.forEach(ev => {
     if (Math.floor(ev.s) !== k) return;
     const t = time + (ev.s - k) * dur;
+    // A hit swung or pushed across a step line still belongs to the position
+    // it was written on, so it keeps that position's dynamic weight.
+    const here = currentStepPos;
+    if (ev.p != null) currentStepPos = ev.p;
     play(ev.track, t, ev.accent, ev.pitch ? { pitch: ev.pitch } : {}, ev.art);
+    currentStepPos = here;
   });
   takePlay.pos = (k + 1) % total;
 }
@@ -3284,7 +3371,8 @@ function takeExportMidi(id) {
   const midiEvents = [];
   entry.events.forEach(ev => {
     toMidiEvents(ev.track, ev.s * secPerStep, ev.accent,
-                 ev.pitch ? { pitch: ev.pitch } : {}, ev.art)
+                 ev.pitch ? { pitch: ev.pitch } : {}, ev.art,
+                 ev.p != null ? ev.p : null)
       .forEach(m => midiEvents.push(m));
   });
   midiEvents.sort((a, b) => a.time - b.time);
@@ -4718,7 +4806,7 @@ function fallbackSynthKit(kitId) {
 }
 
 // Play a sample from the given kit; falls back to that kit's synth fallback.
-function playSample(kitId, trackId, artId, time, v=1, accent=false, pitch=null) {
+function playSample(kitId, trackId, artId, time, v=1, accent=false, pitch=null, dynW=null) {
   const kit = SAMPLE_KITS[kitId];
   const list = kit ? kit.manifest[`${trackId}:${artId}`] : null;
   const fb = () => {
@@ -4731,14 +4819,21 @@ function playSample(kitId, trackId, artId, time, v=1, accent=false, pitch=null) 
   if (!list || list.length === 0) { fb(); return; }
   // Layer by musical context (accent), not by volume:
   // 2 layers → soft/hard; 3+ → middle by default, top on accent.
+  // With Dynamics on, a light position (weight under 0.85, i.e. more than
+  // 1.4 dB down: a kick on an e/a from Dynamics 50 up) drops to the softest layer instead of always sitting on the
+  // middle one — the bottom layer of a 3-layer set was never played before.
   let layerIdx = 0;
   if (list.length === 2) layerIdx = accent ? 1 : 0;
-  else if (list.length >= 3) layerIdx = accent ? (list.length - 1) : Math.floor(list.length / 2);
+  else if (list.length >= 3) {
+    if (accent) layerIdx = list.length - 1;
+    else if (dynW != null && dynW < 0.85) layerIdx = 0;
+    else layerIdx = Math.floor(list.length / 2);
+  }
   const buf = kit.buffers[`${trackId}:${artId}:${layerIdx}`];
   if (!buf) { fb(); return; }
   const src = ctx.createBufferSource();
   src.buffer = buf;
-  if (trackId === 'tom' && pitch) src.playbackRate.value = pitch / 110;
+  src.playbackRate.value = ((trackId === 'tom' && pitch) ? pitch / 110 : 1) * dynamicsRateVariation();
   const g = ctx.createGain();
   g.gain.value = Math.max(0, Math.min(1.5, v * (accent ? 1.0 : 0.85)));
   src.connect(g).connect(masterGain());
@@ -4804,17 +4899,16 @@ function play(track, time, accent=false, opts={}, articulation=null) {
     hatChokeAt(time);
     if (HAT_RINGING_ARTS.has(art)) voiceBus = hatOpenVoice(time);
   }
-  let v = state.volume[track];
-  // Humanize: random velocity variation per hit (clamped to a musical range)
-  if ((state.humanize || 0) > 0) {
-    v = Math.max(0.05, Math.min(1, v * humanVelJitter()));
-  }
+  // Dynamics: the metric weight of this position, plus a hair of per-hit
+  // variation. Both are exactly 1 when the slider is at 0.
+  const dynW = dynamicsWeight(track, art, currentStepPos);
+  let v = state.volume[track] * dynW * dynamicsGainVariation();
 
   // Samples kit fast path: if we have a sample for this exact (track, articulation),
   // use it directly. Otherwise fall through to the synth dispatch (with the
   // current kit) so missing articulations still play something reasonable.
   if (isSampleKit(state.kit) && SAMPLE_KITS[state.kit].manifest[`${track}:${art}`]) {
-    playSample(state.kit, track, art, time, v, accent, opts.pitch);
+    playSample(state.kit, track, art, time, v, accent, opts.pitch, dynW);
     voiceBus = null;
     recordEvent(track, time, accent, opts, art);
     return;
@@ -5031,7 +5125,7 @@ function playCowbellSynth(time, v=1) {
 // Turn one hit into the MIDI events it stands for, at a time already relative
 // to whatever the caller counts from. Shared by the session recorder and by
 // the take exporter so the two can never disagree about the GM mapping.
-function toMidiEvents(track, relTime, accent, opts, articulation) {
+function toMidiEvents(track, relTime, accent, opts, articulation, pos = null) {
   const mapping = GM_MAP[track] && GM_MAP[track][articulation];
   if (!mapping) return [];
 
@@ -5046,7 +5140,7 @@ function toMidiEvents(track, relTime, accent, opts, articulation) {
   const velMul = mapping.velMul || 1.0;
   const baseV = accent ? 110 : 90;
   const velocity = Math.max(15, Math.min(127,
-    Math.round(state.volume[track] * baseV * velMul)
+    Math.round(state.volume[track] * baseV * velMul * dynamicsWeight(track, articulation, pos))
   ));
 
   const out = [];
@@ -5071,7 +5165,7 @@ function recordEvent(track, time, accent, opts, articulation) {
   if (!state.recording) return;
   if (time < state.recStartTime) return;
 
-  toMidiEvents(track, time - state.recStartTime, accent, opts, articulation)
+  toMidiEvents(track, time - state.recStartTime, accent, opts, articulation, currentStepPos)
     .forEach(ev => state.recEvents.push(ev));
 }
 
@@ -5695,7 +5789,13 @@ function scheduler() {
   while (nextStepTime < ctx.currentTime + SCHEDULE_AHEAD_S) {
     const swingOffset = stepDuration() * swingOffsetSteps(state.step);
     const stepTime = nextStepTime + swingOffset;
+    // Every hit scheduled for this step knows its metric position (Dynamics)
+    // and shares one drift value; hits from anywhere else (live pads, MIDI
+    // in) have no position and play at full weight.
+    dynamicsDriftAdvance();
+    currentStepPos = state.step;
     scheduleStep(state.step, stepTime);
+    currentStepPos = null;
 
     // Metronome click on every quarter (steps 0, 4, 8, 12)
     if (state.metronome && state.step % 4 === 0) {
@@ -6223,7 +6323,7 @@ function bindControls() {
     if (savedIntensity !== null) {
       const v = parseInt(savedIntensity);
       if (!isNaN(v) && v >= 0 && v <= 300) {
-        state.feelIntensity = v;
+        state.feelIntensity = Math.min(150, v);   // the scale used to reach 300
       }
     }
   } catch (e) { /* ignore */ }
