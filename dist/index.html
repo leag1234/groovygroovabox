@@ -3264,7 +3264,8 @@ function takeCapture(track, time, accent, opts, art) {
   if (s < 0 || s >= TAKE_BARS * STEPS) return;
   takeRec.events.push({ s: +s.toFixed(4), track, art, accent: !!accent,
                         pitch: (opts && opts.pitch) || undefined,
-                        p: currentStepPos });   // null: a written gesture, full weight
+                        p: currentStepPos,      // null: a written gesture, full weight
+                        w: playingWritten || undefined });
 }
 
 function takeFinish(events) {
@@ -3354,7 +3355,9 @@ function takeScheduleStep(time) {
     // it was written on, so it keeps that position's dynamic weight.
     const here = currentStepPos;
     if (ev.p !== undefined) currentStepPos = ev.p;   // takes before positions: the step
+    playingWritten = !!ev.w;   // a recorded fill keeps its accent lift
     play(ev.track, t, ev.accent, ev.pitch ? { pitch: ev.pitch } : {}, ev.art);
+    playingWritten = false;
     currentStepPos = here;
   });
   takePlay.pos = (k + 1) % total;
@@ -5013,6 +5016,9 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   // variation. Both are exactly 1 when the slider is at 0.
   const dynW = dynamicsWeight(track, art, currentStepPos, accent);
   let v = state.volume[track] * dynW * dynamicsGainVariation();
+  if (playingWritten && accent && (track === 'snare' || track === 'tom')) {
+    v *= Math.pow(10, GESTURE_ACCENT_DB / 20);
+  }
 
   // Samples kit fast path: if we have a sample for this exact (track, articulation),
   // use it directly. Otherwise fall through to the synth dispatch (with the
@@ -5568,10 +5574,20 @@ function setSwingRes(res) {
 
 // A hit from a written gesture (fill, intro, outro, wildcard): its levels are
 // in its own accents, so the Dynamics metric hierarchy stays out of it.
+// Its accented snares and toms also get GESTURE_ACCENT_DB on top: in a break
+// the kit is cut and the snare speaks alone, without the hat that lands on
+// every groove backbeat. At equal level it read as weaker than the groove
+// (Gaël, by ear); measured in the full mix, the relaunch snare landed ~5 dB
+// under the groove's backbeat moment on Salamander.
+const GESTURE_ACCENT_DB = 3;
+let playingWritten = false;
+
 function playWritten(track, time, accent, opts, art) {
   const pos = currentStepPos;
   currentStepPos = null;
+  playingWritten = true;
   play(track, time, accent, opts, art);
+  playingWritten = false;
   currentStepPos = pos;
 }
 

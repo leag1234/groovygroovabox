@@ -208,6 +208,14 @@ the backbeat at Dynamics 50. `dynamicsWeight` returns 1 for accented hits, and
 within 1 dB of the backbeat. Synth kits' ghost is now the kit's own snare
 8 dB down; it was a separate noise burst 17–25 dB under the snare.
 
+**Accented snares and toms in written gestures get +3 dB** (`GESTURE_ACCENT_DB`,
+Gaël asked for the relaunch snare to be "at least as loud, even slightly
+louder"). At equal level it read as weaker: in a break the kit is cut and the
+snare speaks alone, while every groove backbeat lands with the hat. Measured
+in the full mix before: relaunch ~5 dB under the groove's backbeat moment on
+Salamander. After: relaunch snare 2–3 dB over the groove snare on every kit,
+peaks −1.8 dBFS or lower. Takes keep the lift (`w` on recorded events).
+
 **The synth claps were inaudible** (found by Gaël: "Clap 2&4 does nothing").
 They sat 18.5 (Acoust.), 19.2 (Electr.) and 27.2 dB (Studio) under their kit's
 snare, so the pad added 0.0–0.1 dB on 2 and 4. Recalibrated to ~2.5 dB under
