@@ -207,6 +207,27 @@ the grid. Default is 50 %. Chaos and the setup bank are unchanged.
 Intensity is capped at 150 % (it went to 300 %, where Dilla put the backbeat
 0.6 of a step late). Saved intensities above 150 are clamped on load.
 
+**Sampled kits are conditioned at decode** (`analyseSampleKit`, 2026-11-12),
+after an audit of the 160 shipped files. Nothing in `kits/` is edited, so a new
+kit gets the same treatment:
+- each buffer starts 2 ms before its first point within 20 dB of peak
+  (`kit.starts`, passed as the `start()` offset, 1 ms fade-in). Rock's kick
+  transient was 15.6 ms into the file, Salamander's 10.1 ms; now every
+  kit's kick, snare and hat sound within 2 ms of the trigger, measured;
+- one gain per (kit, track) brings the default sample to the median of the
+  shipped kits (`SAMPLE_TARGET_RMS_DB`, RMS over 200 ms from onset), capped
+  at ±8 dB, minus `SAMPLE_HEADROOM_DB` = 4. Kick levels now agree within
+  0.1 dB across the nine kits. The headroom is not optional: aligned
+  transients and raised quiet kits took the Salamander funk groove to
+  +3.5 dBFS; with it every kit peaks between −0.9 and −4.8 dBFS;
+- ghost notes are set 12 dB under the kit's snare (cap ±20 dB): Salamander,
+  808 and Jazz ghosts were louder than their snare.
+Side effect: sampled kits are about 4 dB quieter than the median kit was.
+Not fixed: the synth kit `studio` peaks at +2.3 dBFS on the same groove (it
+did before), Jazz has DC offset on snare and toms, the 808 closed hat is not
+a hat (3 % of its energy above 2 kHz), DR-55 plays 10 of its 16 slots on the
+synth fallback, and the low tom (layer 0) is never played by any kit.
+
 **Takes replay unswung grid time.** Recorded positions already contain the
 swing the scheduler applied, so `scheduleStep` hands `takeScheduleStep` the
 grid time minus this step's swing. Before that, a take recorded with swing was

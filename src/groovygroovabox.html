@@ -4754,6 +4754,7 @@ async function prepareSampleKit(id) {
     urls.forEach((url, idx) => tasks.push(decodeSample(kit, `${key}:${idx}`, url)));
   });
   await Promise.all(tasks);
+  analyseSampleKit(kit);
   kit.loaded = true;
   kit.loading = false;
   console.log('[GroovyGroova] Kit "' + kit.label + '": loaded ' + tasks.length + ' samples');
@@ -4778,6 +4779,92 @@ async function decodeSample(kit, key, url) {
     kit.buffers[key] = await ctx.decodeAudioData(arr);
   } catch (e) {
     console.warn('[GroovyGroova] Failed to load sample', key, e.message);
+  }
+}
+
+// ---- Sample conditioning, done once per kit after decoding ----
+// The audit of the shipped kits (2026-11-12) found three defects no file edit
+// had caught, all fixed here, so they apply to any kit, present or future:
+//
+// 1. Late attacks. Many files carry dead time before the hit: the Rock kick's
+//    transient is 15.6 ms into the file (20.4 on its accent layer), the
+//    Salamander kick's 10.1 ms. Against a hat that starts on time, that is a
+//    soft flam on every beat. Each sample now starts 2 ms before its first
+//    point within 20 dB of its peak; the 2 ms keep the beater and the
+//    pre-attack, and a 1 ms fade-in hides the cut.
+// 2. Levels. The same instrument differed by 9 to 13 dB from one kit to the
+//    next (kick: Rock -5 dB RMS, DR-55 -14.6). Each (kit, track) gets one gain
+//    that brings its default sample to the median of the shipped kits; one
+//    gain per track, so the kit's own balance between layers and
+//    articulations (open vs closed hat, rim vs snare) is kept.
+// 3. Ghost notes louder than the snare (Salamander +3.5 dB, 808 +5.2). The
+//    ghost is set GHOST_BELOW_SNARE_DB under the kit's snare, whatever the file.
+//
+// Levels are RMS over 200 ms from the onset (first point within 40 dB of
+// peak) — the metric the medians below were measured with.
+const SAMPLE_START_THRESHOLD = 0.1;        // -20 dB re peak: the transient
+const SAMPLE_PREROLL_S = 0.002;
+const SAMPLE_TARGET_RMS_DB = {             // medians of the 9 shipped kits
+  kick: -11.7, snare: -16.8, clap: -16.6, hh: -20.8,
+  ride: -17.3, tom: -10.7, crash: -14.6, cowbell: -17.3,
+};
+const SAMPLE_MAIN_ART = {                  // the articulation a track is measured on
+  kick: 'normal', snare: 'normal', clap: 'normal', hh: 'closed',
+  ride: 'normal', tom: 'normal', crash: 'normal', cowbell: 'normal',
+};
+const SAMPLE_GAIN_LIMIT_DB = 8;
+const GHOST_GAIN_LIMIT_DB = 20;            // ghosts can be normalised hot: Salamander's needs -15.5
+const GHOST_BELOW_SNARE_DB = 12;
+// Lining transients up makes simultaneous hits sum to higher peaks, and the
+// quiet kits get raised: without headroom the Salamander funk groove peaked at
+// +3.5 dBFS (it was -0.8). 4 dB brings every kit back to about 0 or under.
+const SAMPLE_HEADROOM_DB = 4;
+
+function bufferPeak(d) {
+  let pk = 0;
+  for (let i = 0; i < d.length; i++) { const a = Math.abs(d[i]); if (a > pk) pk = a; }
+  return pk;
+}
+function bufferFirstAbove(d, level) {
+  for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) >= level) return i;
+  return 0;
+}
+function bufferRmsDb(buf) {
+  const d = buf.getChannelData(0);
+  const on = bufferFirstAbove(d, bufferPeak(d) * 0.01);
+  const n = Math.floor(0.2 * buf.sampleRate);
+  let s = 0;
+  for (let i = on; i < Math.min(d.length, on + n); i++) s += d[i] * d[i];
+  return 10 * Math.log10(s / n + 1e-12);
+}
+// The layer a track plays by default (see playSample).
+function defaultLayerIdx(n) { return n >= 3 ? Math.floor(n / 2) : 0; }
+
+function analyseSampleKit(kit) {
+  kit.starts = {};
+  kit.trackGain = {};
+  kit.ghostGain = 1;
+  Object.entries(kit.buffers).forEach(([key, buf]) => {
+    const d = buf.getChannelData(0);
+    const at = bufferFirstAbove(d, bufferPeak(d) * SAMPLE_START_THRESHOLD) / buf.sampleRate;
+    kit.starts[key] = Math.max(0, at - SAMPLE_PREROLL_S);
+  });
+  const levelOf = (track, art) => {
+    const list = kit.manifest[`${track}:${art}`];
+    const buf = list && kit.buffers[`${track}:${art}:${defaultLayerIdx(list.length)}`];
+    return buf ? bufferRmsDb(buf) : null;
+  };
+  const lim = db => Math.max(-SAMPLE_GAIN_LIMIT_DB, Math.min(SAMPLE_GAIN_LIMIT_DB, db));
+  Object.entries(SAMPLE_TARGET_RMS_DB).forEach(([track, target]) => {
+    const lvl = levelOf(track, SAMPLE_MAIN_ART[track]);
+    if (lvl != null) kit.trackGain[track] = Math.pow(10, (lim(target - lvl) - SAMPLE_HEADROOM_DB) / 20);
+  });
+  const ghost = levelOf('snare', 'ghost');
+  const snare = levelOf('snare', 'normal');
+  if (ghost != null && snare != null) {
+    // in dB relative to the snare track gain already applied to the ghost
+    const db = (snare - GHOST_BELOW_SNARE_DB) - ghost;
+    kit.ghostGain = Math.pow(10, Math.max(-GHOST_GAIN_LIMIT_DB, Math.min(GHOST_GAIN_LIMIT_DB, db)) / 20);
   }
 }
 
@@ -4817,9 +4904,19 @@ function playSample(kitId, trackId, artId, time, v=1, accent=false, pitch=null, 
   src.buffer = buf;
   src.playbackRate.value = ((trackId === 'tom' && pitch) ? pitch / 110 : 1) * dynamicsRateVariation();
   const g = ctx.createGain();
-  g.gain.value = Math.max(0, Math.min(1.5, v * (accent ? 1.0 : 0.85)));
+  const level = Math.max(0, Math.min(1.5, v * (accent ? 1.0 : 0.85))) *
+    ((kit.trackGain && kit.trackGain[trackId]) || 1) *
+    (artId === 'ghost' ? (kit.ghostGain || 1) : 1);
+  const offset = (kit.starts && kit.starts[`${trackId}:${artId}:${layerIdx}`]) || 0;
+  if (offset > 0) {
+    // the cut lands inside the pre-attack: fade it in over 1 ms
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(level, time + 0.001);
+  } else {
+    g.gain.value = level;
+  }
   src.connect(g).connect(masterGain());
-  src.start(time);
+  src.start(time, offset);
 }
 
 // Kit buttons: one per registered sample kit, appended to the kit switch.
