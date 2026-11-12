@@ -1,4 +1,4 @@
 name: Rock kit
 license: Undetermined
 source-url: https://github.com/tidalcycles/Dirt-Samples
-note: Processed derivative of the acoustic sources (heavy mix chain); inherits whatever terms those carry.
+note: Processed derivative of the acoustic sources (heavy mix chain); inherits whatever terms those carry. An audit (2026-11-12) found several samples strongly correlated with Salamander Drumkit samples (cross-stick 0.98, ghost 0.95): this kit very likely contains processed Salamander material by Alexander Holm, CC BY-SA 3.0, and that attribution and ShareAlike apply to it.

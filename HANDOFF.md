@@ -17,8 +17,8 @@ no build system, no dependencies, no server. You open the file and press Space.
 
 ```
 src/groovygroovabox.html   The source. ~262 KB, everything in one file.
-dist/index.html            The build: same app + 9 sampled kits inlined as
-                           base64. ~12 MB. This is what ships.
+dist/index.html            The build: same app + 6 sampled kits inlined as
+                           base64. ~10 MB. This is what ships.
 kits/<kit>/                Samples, plus a CREDITS file per kit.
 tools/inject_samples.py    Builds dist from src + kits.
 docs/mockups/              UI mockups, not wired to anything.
@@ -32,11 +32,8 @@ python3 tools/inject_samples.py src/groovygroovabox.html \
   --kit salamander "Salam." studio kits/salamander \
   --kit tr808 "808" electronic kits/tr808 \
   --kit dmx "DMX" electronic kits/dmx \
-  --kit drumtraks "DrumTraks" electronic kits/drumtraks \
-  --kit dr55 "DR-55" electronic kits/dr55 \
   --kit amen "Amen" acoustic kits/amen \
   --kit jazz "Jazz" acoustic kits/jazz \
-  --kit tight "Tight" acoustic kits/tight \
   --kit rock "Rock" acoustic kits/rock
 mv src/groovygroovabox-with-samples.html dist/index.html
 ```
@@ -225,8 +222,7 @@ kit gets the same treatment:
 Side effect: sampled kits are about 4 dB quieter than the median kit was.
 Not fixed: the synth kit `studio` peaks at +2.3 dBFS on the same groove (it
 did before), Jazz has DC offset on snare and toms, the 808 closed hat is not
-a hat (3 % of its energy above 2 kHz), DR-55 plays 10 of its 16 slots on the
-synth fallback, and the low tom (layer 0) is never played by any kit.
+a hat (3 % of its energy above 2 kHz), and the low tom (layer 0) is never played by any kit.
 
 **Takes replay unswung grid time.** Recorded positions already contain the
 swing the scheduler applied, so `scheduleStep` hands `takeScheduleStep` the
@@ -275,7 +271,11 @@ I O            intro / outro
   last two beats, leaving kick then a flammed snare, twice, before the groove
   slams back on the one. The flam is a grace note 15 ms ahead of the stroke.
 - **7 intros, 5 outros.**
-- **12 kits**: 3 synth, 9 sampled.
+- **9 kits**: 3 synth, 6 sampled. DR-55 (4 real sounds, 10 slots on the synth
+  fallback), DrumTraks (a weaker DMX, open hats cut at 0.21 s) and Tight (12
+  of its 19 files were Salamander) were removed on 2026-11-12, Gaël's call
+  after the kit audit. Gaël kept the synth Acoust. as the boot kit. Setups
+  saved on a removed kit recall everything but the kit.
 - **Setup bank**: saves the grid plus every groove setting; recall honours the
   Now / Next bar switch.
 - **Takes**: record exactly 4 bars starting at the next bar line, frozen, all
@@ -325,7 +325,7 @@ bars.
    setups saved on `localhost` do not follow to `indidea.org` or to the
    downloaded file. A JSON export would fix it and is probably a prerequisite
    for song mode being useful.
-6. **`dist/index.html` is a 12 MB tracked binary-ish blob.** Every rebuild is a
+6. **`dist/index.html` is a 10 MB tracked binary-ish blob.** Every rebuild is a
    full-file diff. It works, but the repository will grow quickly.
 
 ---
@@ -333,7 +333,7 @@ bars.
 ## 6. Releases
 
 Releases carry `groovygroovabox.html` as an asset because GitHub serves `.html`
-from the repo as `text/plain` — the raw link displays 12 MB of source instead of
+from the repo as `text/plain` — the raw link displays 10 MB of source instead of
 downloading. The release asset is served with `Content-Disposition: attachment`.
 
 ```
@@ -386,7 +386,7 @@ Attribution is rendered **into the build** from `kits/<kit>/CREDITS` by
 `inject_samples.py` at the `<!-- SAMPLE-CREDITS -->` marker, as static markup so
 it survives JavaScript being disabled. A kit without a `CREDITS` file builds but
 warns. Do not remove this: for CC BY-SA the notice has to travel inside the
-12 MB file, which circulates detached from the README.
+10 MB file, which circulates detached from the README.
 
 Samples were re-encoded through ffmpeg and renamed to a normalised scheme, so
 original filenames and metadata are gone and no sample can be traced to a

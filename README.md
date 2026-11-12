@@ -4,7 +4,7 @@
 
 🎛️ **Try it now: [https://www.indidea.org/groovygroovabox/](https://www.indidea.org/groovygroovabox/)**
 
-GroovyGroova Box is a 16-step, 8-track drum machine built for *live* use: you play with the groove while it runs. Pads and keyboard shortcuts alter the pattern on the fly, a microtiming engine gives each hit a human placement, a controlled-chaos layer carves breaks into the groove, and a "wildcard" lets the machine surprise you with a musical gesture on the next bar. Everything, including 9 sampled drum kits, ships as one self-contained HTML file that works offline.
+GroovyGroova Box is a 16-step, 8-track drum machine built for *live* use: you play with the groove while it runs. Pads and keyboard shortcuts alter the pattern on the fly, a microtiming engine gives each hit a human placement, a controlled-chaos layer carves breaks into the groove, and a "wildcard" lets the machine surprise you with a musical gesture on the next bar. Everything, including 6 sampled drum kits, ships as one self-contained HTML file that works offline.
 
 No install, no build step, no account: open the file in a browser and press Play.
 
@@ -40,20 +40,17 @@ An original concept by **Gaël Duval**, developed since **May 2026**. First publ
 - Essential hits (downbeat kick, backbeat snare) are never randomized away.
 - **Kick spacing guard**: pattern kicks always play; the one extra kick Broken adds yields if it would crowd them. Deliberate rolls — fills and wildcard gestures — never go through this and are untouched.
 
-### Sounds: 12 kits
+### Sounds: 9 kits
 - **3 synthesized kits**: Acoustic (wood, skins and air), Electronic (808/909 lineage) and Studio (gated, saturated). Cymbals are built from noise resonators rather than oscillators, so they never collapse into a tone.
-- **9 sampled kits**:
+- **6 sampled kits**:
 
 | Kit | Source | Character |
 |---|---|---|
 | Salam. | Salamander Drumkit | Full acoustic kit, velocity layers |
 | 808 | Roland TR-808 | The classic |
 | DMX | Oberheim DMX | 80s hip-hop, "Blue Monday" |
-| DrumTraks | Sequential DrumTraks | 8-bit synth-pop |
-| DR-55 | Boss DR-55 | 4 voices only, like the original; the rest falls back to synthesis |
 | Amen | The Amen break | Extracted from 32 slices, lo-fi jungle |
 | Jazz | Jazz kit | Small, dark, brushes |
-| Tight | Dry acoustic kit | Punchy and short |
 | Rock | Processed acoustic | Heavy mix chain: compression, saturation, low boost |
 
 Any articulation a sampled kit lacks falls back to a matching synth kit, so every pattern plays on every kit.
@@ -103,7 +100,7 @@ Any articulation a sampled kit lacks falls back to a matching synth kit, so ever
 
 - **Download the app**: grab
   **[groovygroovabox.html from the latest release](https://github.com/leag1234/groovygroovabox/releases/latest)**
-  — one self-contained file, all 12 kits embedded, about 12 MB. Open it in any modern
+  — one self-contained file, all 9 kits embedded, about 10 MB. Open it in any modern
   browser: no install, no server, works offline. Deploying it to a site? Rename it to
   `index.html`.
 
@@ -145,7 +142,7 @@ Tips: keep hats and short hits as WAV (MP3 smears transients under 100 ms), MP3 
 
 Each kit folder carries its own `CREDITS` file, and the injector renders those
 into the page at build time, next to the copyright line. That way attribution
-travels with the build: `dist/index.html` is a standalone 12 MB file, and
+travels with the build: `dist/index.html` is a standalone 10 MB file, and
 licenses that require a notice (CC BY-SA, for one) need it present in that
 file, not only here in the README.
 
@@ -206,7 +203,7 @@ cannot lift:
   (Attribution-ShareAlike). Attribution is required, and the ShareAlike term
   applies to adaptations — including the re-encoded and trimmed samples in
   `kits/salamander/`.
-- **TR-808, Sequential DrumTraks, Boss DR-55, Amen break, jazz and acoustic
+- **TR-808, Amen break, jazz and rock
   kits** come from the [Dirt-Samples](https://github.com/tidalcycles/Dirt-Samples)
   collection maintained by the TidalCycles community. Note that Dirt-Samples
   ships no license file and documents provenance for only one of these
@@ -218,8 +215,12 @@ cannot lift:
   **undetermined**.
 - **Oberheim DMX**: source **unverified**. There is no `dmx` folder in
   Dirt-Samples, so the origin of `kits/dmx/` is currently undocumented.
-- The **Rock** and **Tight** kits are processed derivatives of the acoustic
-  sources above, and inherit whatever terms those sources carry.
+- The **Rock** kit is a processed derivative of the acoustic sources above
+  and inherits whatever terms those carry. An audit found it very likely
+  contains processed Salamander samples, and that six of the **Jazz** kit's
+  samples (crash, rides, bell, cross-stick, ghost) are Salamander files: the
+  CC BY-SA attribution and ShareAlike apply to those, and their `CREDITS`
+  say so.
 
 Per-kit attribution lives in `kits/<kit>/CREDITS` and is rendered into
 `dist/index.html` at build time, so the notice travels with the standalone
