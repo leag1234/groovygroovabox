@@ -168,6 +168,31 @@ MIDI export converts steps to ticks directly.
 master volume. They belong to the machine you are listening on, not to the
 music. Recalling a setup must never change how loud the box is.
 
+**Swing uses the MPC / LinnDrum scale.** `state.swing` is 50–75: the share of
+each pair the first note takes, 66 = triplet. It used to be the odd 16th's delay
+in percent of a step (0–60, triplet at 33) while every hint in the app quoted
+MPC numbers, so following a hint over-swung the groove ("55 %" was ~77 % MPC).
+`state.swingRes` is 16 or 8. 1/16 only moves odd steps, which does nothing at
+all to the nine patterns whose hits all sit on even steps — Blues Shuffle could
+never shuffle. 1/8 moves the offbeat 8th to `p` of the beat and puts the 16ths
+in between halfway inside their swung 8th (`swingOffsetSteps`). Bank entries
+carry `swingScale: 'mpc'`; entries without it are converted on recall by
+`swingFromLegacy` (50 + old/2).
+
+**Takes replay unswung grid time.** Recorded positions already contain the
+swing the scheduler applied, so `scheduleStep` hands `takeScheduleStep` the
+grid time minus this step's swing. Before that, a take recorded with swing was
+swung a second time on replay. Verified: 108 events recorded at Swing 1/8 66 %,
+108 identical positions replayed.
+
+**Open and closed hat share a choke group.** Every hi-hat hit calls
+`hatChokeAt(time)`; an open, half-open or open-close voice is built on its own
+gain (`hatOpenVoice`, via the `voiceBus` override in `masterGain`) so the next
+hat can close it with a ~50 ms pedal-like release. Sample and synth kits alike.
+Measured with an offline render: the Salamander open hat (3 s) left −36 dB of
+ring 0.5–1 s after a closed hat; it now leaves nothing above the closed hat
+alone.
+
 **Space is play/stop**, with Enter still working. `ownsKeys` skips the global
 handler when a focused control owns the key — selects, text inputs, checkboxes,
 contenteditable. Range sliders and buttons are deliberately *not* skipped: Space
@@ -242,8 +267,10 @@ bars.
 3. **Trap has no hat rolls**, its defining feature, because the 16-step grid
    cannot express triplets or 32nds. Would need sub-step events, which `off`
    now makes thinkable.
-4. **Blues Shuffle and UK Garage need Swing at 50–60 %** to sound right; nothing
-   tells the user that except the README.
+4. **Blues Shuffle needs Swing 1/8 at 66 %**, UK Garage Swing 1/16 around
+   58 %. Loading a pattern does not set swing (deliberate so far: switching
+   live must not move the feel), so nothing tells the user except the README
+   and the pattern comments.
 5. **No export/import of the bank or takes.** `localStorage` is per-origin, so
    setups saved on `localhost` do not follow to `indidea.org` or to the
    downloaded file. A JSON export would fix it and is probably a prerequisite

@@ -19,6 +19,8 @@ An original concept by **Gaël Duval**, developed since **May 2026**. First publ
 - Per-step **articulations**: rim shot, ghost note, cross-stick on the snare; closed, half-open, open, foot and open-close on the hi-hat; bow and bell on the ride
 - 23 built-in patterns: rock, funk, breakbeat, blues shuffle, Motown, punk / D-beat, New Orleans second line, disco, house, UK garage 2-step, drum & bass, hip-hop, 2000s R&B, trap, reggae, dancehall, Afro-Cuban (son, rumba, cha-cha), bossa, samba, Bo Diddley and Afrobeat
 - Pattern switching **now** or **on the next bar**, tempo 40 to 220 BPM, swing, count-in, metronome
+- **Swing** in the MPC / LinnDrum convention: 50 % is straight, 54 % loosens, 58–62 % swings, 66 % is a triplet, 75 % is dotted. The **1/16 · 1/8** button picks what gets swung: 1/16 swings the odd 16ths (funk, garage, house), 1/8 swings the offbeat 8ths and carries the 16ths with them (shuffle, jazz, boom bap on 8th hats). Blues Shuffle wants 1/8 at 66 %.
+- The hi-hat is one instrument: an open or half-open hat rings until the next hat closes it (choke group, as on every drum machine since the 808)
 
 ### Live performance
 - **Alteration pads** (with keyboard shortcuts): hi-hat variants, kick variants, syncopation, ghost snare, clap on 2 and 4, snare echoes, and **Broken** (2000s R&B chopped-beat mode with a 2-bar A/B cycle)

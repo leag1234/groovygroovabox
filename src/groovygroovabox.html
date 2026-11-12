@@ -988,6 +988,20 @@
   }
   .t-group .slider { width: 86px; min-width: 0; }
   .t-group .knob-val { min-width: 30px; text-align: right; }
+  .swing-res-btn {
+    background: #1a1a1a;
+    border: 1px solid var(--line-2);
+    color: var(--ink);
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 2px;
+    height: 18px;
+    padding: 0 5px;
+    line-height: 1;
+  }
+  .swing-res-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .swing-res-btn.eighth { border-color: var(--accent); color: var(--accent); }
 
   .display {
     display: flex;
@@ -1476,10 +1490,11 @@
         <button class="bpm-btn" id="bpm-up">+</button>
         <span class="knob-val" id="bpm-val">120</span>
       </div>
-      <div class="t-group" title="Swing: shifts odd 16ths toward triplet feel">
+      <div class="t-group" title="Swing, MPC convention: the first note of each pair takes this share of the pair. 50% straight, 54% loosens, 58-62% swings, 66% triplet, 75% dotted. The 1/16 / 1/8 button picks which notes are paired: 1/16 swings the odd 16ths, 1/8 swings the offbeat 8ths (shuffle, jazz).">
         <span class="t-lbl">Swing</span>
-        <input type="range" class="slider" id="swing" min="0" max="60" value="0">
-        <span class="knob-val" id="swing-val">0%</span>
+        <input type="range" class="slider" id="swing" min="50" max="75" value="50">
+        <span class="knob-val" id="swing-val">50%</span>
+        <button class="swing-res-btn" id="swing-res" type="button">1/16</button>
       </div>
     </div>
 
@@ -2009,7 +2024,7 @@ const FEEL_MODES = {
   },
   boombap: {
     name: 'Boom Bap Golden',
-    hint: '90s hip-hop (Premier, Pete Rock). Best with swing ~55%.',
+    hint: '90s hip-hop (Premier, Pete Rock). Best with swing ~56% (1/8 if the hats are 8ths).',
     offsets: { kick: 0.02, snare: 0.10, hh: 0 }
   },
   bonham: {
@@ -2068,7 +2083,7 @@ const FEEL_MODES = {
   },
   jazzshuffle: {
     name: 'Jazz Shuffle',
-    hint: 'Ride steady (the clock). Snare breathes. Best with swing 66%.',
+    hint: 'Ride steady (the clock). Snare breathes. Best with swing 66% at 1/8.',
     offsets: {
       kick: 0,
       snare: { base: 0, backbeat: 0.06 },
@@ -2789,7 +2804,7 @@ const PATTERNS = {
     bpm: 95,
     pattern: {
       // Blues shuffle: plain 8ths on the kit, the triplet lives in Swing.
-      // Push Swing to ~60% and the Jazz Shuffle feel for the real lope.
+      // Set Swing to 1/8 at 66% (triplet) with the Jazz Shuffle feel for the lope.
       kick:    ['normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0],
       snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
       clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2853,7 +2868,7 @@ const PATTERNS = {
     bpm: 134,
     pattern: {
       // 2-step: the kick deliberately skips beat 3, the snare lands on 2 and
-      // 4 with a shuffled 16th between. Push Swing to 50-60%.
+      // 4 with a shuffled 16th between. Swing 1/16 around 56-60%.
       kick:    ['normal', 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 0, 0],
       snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 'ghost', 0],
       clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2942,7 +2957,8 @@ const state = {
     return [id, 0.8];
   })),
   bpm: 120,
-  swing: 0,
+  swing: 50,       // MPC convention: 50 straight, 66 triplet, 75 max
+  swingRes: 16,    // 16: swing the odd 16ths. 8: swing the offbeat 8ths.
   avOffsetMs: 0,   // Visual-vs-audio sync offset in ms. Positive = visual later.
   feelMode: 'straight',      // one of FEEL_MODES keys
   feelIntensity: 100,        // 0-300 (percent). Scales all microtiming offsets.
@@ -3429,6 +3445,8 @@ function bankCapture(name) {
     pattern: JSON.parse(JSON.stringify(state.pattern)),
     bpm: state.bpm,
     swing: state.swing,
+    swingScale: 'mpc',
+    swingRes: state.swingRes,
     feelMode: state.feelMode,
     feelIntensity: state.feelIntensity,
     humanize: state.humanize,
@@ -3466,7 +3484,10 @@ function bankApply(entry) {
 
   // Tempo and groove, through their own controls
   if (typeof entry.bpm === 'number') bankDrive('bpm-slider', entry.bpm);
-  bankDrive('swing', entry.swing);
+  if (typeof entry.swing === 'number') {
+    bankDrive('swing', entry.swingScale === 'mpc' ? entry.swing : swingFromLegacy(entry.swing));
+  }
+  setSwingRes(entry.swingRes === 8 ? 8 : 16);
   bankDrive('feel-dropdown', entry.feelMode);
   bankDrive('feel-intensity', entry.feelIntensity);
   bankDrive('humanize', entry.humanize);
@@ -4088,7 +4109,13 @@ function unlockIOSAudio() {
 ['touchend', 'mousedown', 'keydown'].forEach(evt =>
   document.addEventListener(evt, unlockIOSAudio, { once: false, capture: true, passive: true }));
 
+// While one hi-hat voice is being built, its nodes connect here instead of to
+// the master, so the whole voice — sample or synth, however many nodes —
+// can be choked through a single gain. See hatChokeVoice().
+let voiceBus = null;
+
 const masterGain = () => {
+  if (voiceBus) return voiceBus;
   if (!ctx._master) {
     const g = ctx.createGain();
     g.gain.value = state.master;
@@ -4725,6 +4752,12 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   takeCapture(track, time, accent, opts, art);
   // Synth kit for this hit: the selected synth kit, or a sample kit's fallback
   const kit = KITS[state.kit] || fallbackSynthKit(state.kit);
+  // One hi-hat, one pedal: any new hat closes the one still ringing, and an
+  // open voice is built on its own choke gain so the next hat can close it.
+  if (track === 'hh') {
+    hatChokeAt(time);
+    if (HAT_RINGING_ARTS.has(art)) voiceBus = hatOpenVoice(time);
+  }
   let v = state.volume[track];
   // Humanize: random velocity variation per hit (clamped to a musical range)
   if ((state.humanize || 0) > 0) {
@@ -4736,6 +4769,7 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   // current kit) so missing articulations still play something reasonable.
   if (isSampleKit(state.kit) && SAMPLE_KITS[state.kit].manifest[`${track}:${art}`]) {
     playSample(state.kit, track, art, time, v, accent, opts.pitch);
+    voiceBus = null;
     recordEvent(track, time, accent, opts, art);
     return;
   }
@@ -4751,9 +4785,12 @@ function play(track, time, accent=false, opts={}, articulation=null) {
       // Foot close / chick: distinct dark percussive sound (pedal mechanism)
       playFootClose(time, v);
     } else if (art === 'openclose') {
-      // Open hit, then a foot-close 120ms later
+      // Open hit, then the foot closes it 130 ms later: the chick sounds on
+      // the master, and the pedal actually stops the open voice.
       kit.oh(time, v);
+      voiceBus = null;
       playFootClose(time + 0.13, v * 0.8);
+      hatChokeAt(time + 0.13);
     } else {
       // closed
       kit.hh(time, v, accent);
@@ -4793,7 +4830,36 @@ function play(track, time, accent=false, opts={}, articulation=null) {
     if (fn) fn(time, v, accent);
   }
 
+  voiceBus = null;
   recordEvent(track, time, accent, opts, art);
+}
+
+// ---- Hi-hat choke ----
+// A hi-hat is one instrument with one pedal: an open hat rings until the next
+// hat closes it. Without this, the Salamander open hat (3 s long) kept ringing
+// under every closed hat that followed, a wash over the whole top end. Every
+// drum machine since the 808 puts open and closed hat in one choke group.
+const HAT_RINGING_ARTS = new Set(['open', 'halfopen', 'openclose']);
+const HAT_CHOKE_TAU = 0.012;   // ~50 ms to -40 dB: a pedal closing, not a cut
+let hatRinging = null;         // { gain, start } of the open voice still sounding
+
+function hatOpenVoice(time) {
+  const g = ctx.createGain();
+  g.gain.value = 1;
+  g.connect(masterGain());     // voiceBus is still null here: the real master
+  hatRinging = { gain: g, start: time };
+  return g;
+}
+
+function hatChokeAt(time) {
+  // Scheduling runs ahead in time order, so a voice that starts later than
+  // this hit (only possible through humanize jitter) is not ours to close.
+  if (!hatRinging || hatRinging.start >= time) return;
+  const g = hatRinging.gain.gain;
+  g.cancelScheduledValues(time);
+  g.setValueAtTime(1, time);
+  g.setTargetAtTime(0, time, HAT_CHOKE_TAU);
+  hatRinging = null;
 }
 
 // Cross-stick synth (short woody tick)
@@ -5215,6 +5281,44 @@ function stepDuration() {
   return 60.0 / state.bpm / 4;
 }
 
+// Swing, as a delay in steps for a grid position. MPC / LinnDrum convention:
+// state.swing is the share of each pair the first note takes — 50 straight,
+// 66 triplet, 75 dotted.
+//   1/16: the pair is two 16ths; the odd 16th moves to 2p of a 16th.
+//   1/8:  the pair is two 8ths; the offbeat 8th (steps 2, 6, 10, 14) moves to
+//         p of the beat, and each 16th in between sits halfway inside its
+//         swung 8th, so a 16th figure follows the shuffle instead of
+//         colliding with it.
+// The 1/16 mode is the only one the box used to have, and it can do nothing
+// to a pattern whose hits all sit on even steps — which is why Blues Shuffle
+// could never shuffle.
+function swingOffsetSteps(stepIndex) {
+  const p = Math.max(0.5, Math.min(0.75, (state.swing || 50) / 100));
+  if (p === 0.5) return 0;
+  if (state.swingRes === 8) {
+    const pos = stepIndex % 4;
+    if (pos === 0) return 0;
+    if (pos === 2) return 4 * p - 2;
+    return 2 * p - 1;           // the two 16ths between
+  }
+  return (stepIndex % 2 === 1) ? 2 * p - 1 : 0;
+}
+
+// Bank entries saved before the MPC scale stored swing as the delay of the odd
+// 16th in percent of a step (0..60, triplet at 33). Same feel, other number.
+function swingFromLegacy(oldValue) {
+  return Math.max(50, Math.min(75, Math.round(50 + (oldValue || 0) / 2)));
+}
+
+function setSwingRes(res) {
+  state.swingRes = (res === 8) ? 8 : 16;
+  const b = document.getElementById('swing-res');
+  if (b) {
+    b.textContent = state.swingRes === 8 ? '1/8' : '1/16';
+    b.classList.toggle('eighth', state.swingRes === 8);
+  }
+}
+
 function scheduleStep(stepIndex, time) {
   // Structural pause gate: every play() issued while scheduling this step is
   // silenced if the current chaos pause plan says so (whole-kit breaks).
@@ -5306,7 +5410,10 @@ function scheduleStep(stepIndex, time) {
   // Frozen material, so nothing below runs: no pattern, no chaos, no pads.
   if (takePlay) {
     currentChaosGate = null;
-    takeScheduleStep(time);
+    // The swing the scheduler added to this step is already inside the
+    // recorded positions; hand the take the unswung grid time, or it swings
+    // twice.
+    takeScheduleStep(time - stepDuration() * swingOffsetSteps(stepIndex));
     return;
   }
 
@@ -5540,9 +5647,7 @@ function scheduleStep(stepIndex, time) {
 
 function scheduler() {
   while (nextStepTime < ctx.currentTime + SCHEDULE_AHEAD_S) {
-    const swingOffset = (state.step % 2 === 1)
-      ? stepDuration() * (state.swing / 100)
-      : 0;
+    const swingOffset = stepDuration() * swingOffsetSteps(state.step);
     const stepTime = nextStepTime + swingOffset;
     scheduleStep(state.step, stepTime);
 
@@ -6017,6 +6122,10 @@ function bindControls() {
     state.swing = parseInt(e.target.value);
     document.getElementById('swing-val').textContent = state.swing + '%';
   });
+  document.getElementById('swing-res').addEventListener('click', e => {
+    setSwingRes(state.swingRes === 8 ? 16 : 8);
+    e.currentTarget.blur();
+  });
 
   document.getElementById('avoffset').addEventListener('input', e => {
     state.avOffsetMs = parseInt(e.target.value);
@@ -6159,12 +6268,13 @@ function bindControls() {
     humanizeVal.textContent = '0%';
     chaosSlider.value = 0;
     chaosVal.textContent = '0%';
-    // Swing -> 0
-    state.swing = 0;
+    // Swing -> straight (50 %), 1/16
+    state.swing = 50;
     const swingSlider = document.getElementById('swing');
-    if (swingSlider) { swingSlider.value = 0; }
+    if (swingSlider) { swingSlider.value = 50; }
     const swingVal = document.getElementById('swing-val');
-    if (swingVal) { swingVal.textContent = '0%'; }
+    if (swingVal) { swingVal.textContent = '50%'; }
+    setSwingRes(16);
     // Switch off ALL active alteration pads (Broken, Ghost, Syncope, ...)
     state.alterations.clear();
     document.querySelectorAll('.pad.toggle.active').forEach(p => p.classList.remove('active'));
@@ -6635,7 +6745,7 @@ const MIDI_ACTIONS = (() => {
     id: 'val-swing', label: 'Swing', group: 'Sliders / Knobs', type: 'value',
     value: (v) => {
       const slider = document.getElementById('swing');
-      slider.value = Math.round(v * 60);
+      slider.value = 50 + Math.round(v * 25);
       slider.dispatchEvent(new Event('input'));
     },
   });
