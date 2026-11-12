@@ -4398,6 +4398,9 @@ const KITS = {
       bandNoise(t, 0.05, 1500, 0.5, 0.0005, 0.04, accent ? 0.2 : 0.14, v);
     },
     clap: (t, v=1) => {
+      // Level calibrated 2026-11-12 to ~2 dB under this kit's snare, like the
+      // sampled claps. It sat 18.5 dB under, and the Clap 2&4 pad was inaudible.
+      v *= 8.0;
       // Several hands never land together: 4 offset bursts + short tail
       [0, 0.009, 0.019, 0.028].forEach((off, i) => {
         bandNoise(t + off, 0.05, 1900, 1.4, 0.0005, 0.035, 0.14 / (i * 0.35 + 1), v);
@@ -4510,6 +4513,9 @@ const KITS = {
       lo.start(t); lo.stop(t + 0.14);
     },
     clap: (t, v=1) => {
+      // Level calibrated 2026-11-12 to ~2 dB under this kit's snare, like the
+      // sampled claps. It sat 19.2 dB under, and the Clap 2&4 pad was inaudible.
+      v *= 8.6;
       // 808 clap: 3 tight bursts then a long filtered tail
       [0, 0.008, 0.016].forEach(off => {
         bandNoise(t + off, 0.03, 1000, 0.8, 0.0003, 0.02, 0.2, v);
@@ -4642,6 +4648,11 @@ const KITS = {
       lo.start(t); lo.stop(t + 0.14);
     },
     clap: (t, v=1) => {
+      // Level calibrated 2026-11-12. It sat 27.2 dB under this kit's snare and
+      // the Clap 2&4 pad was inaudible. Held ~7 dB under rather than 2: this
+      // gated clap is all peak, and Salamander borrows it — at -2 dB the
+      // Salamander groove with claps peaked at +1.8 dBFS.
+      v *= 13;
       [0, 0.006, 0.013, 0.02].forEach((off, i) => {
         bandNoise(t + off, 0.035, 2400, 1.1, 0.0003, 0.024, 0.17 / (i * 0.3 + 1), v);
       });
@@ -4885,9 +4896,10 @@ function playSample(kitId, trackId, artId, time, v=1, accent=false, pitch=null, 
   const fb = () => {
     const f = fallbackSynthKit(kitId)[trackId];
     if (!f) return;
-    if (trackId === 'tom') f(time, v, pitch || 110);
-    else if (trackId === 'oh') f(time, v);
-    else f(time, v, accent);
+    const fv = v * Math.pow(10, -SAMPLE_HEADROOM_DB / 20);   // same headroom as the samples
+    if (trackId === 'tom') f(time, fv, pitch || 110);
+    else if (trackId === 'oh') f(time, fv);
+    else f(time, fv, accent);
   };
   if (!list || list.length === 0) { fb(); return; }
   // Layer by musical context (accent), not by volume:
@@ -4996,6 +5008,11 @@ function play(track, time, accent=false, opts={}, articulation=null) {
     recordEvent(track, time, accent, opts, art);
     return;
   }
+  // A sampled kit playing a synth voice for what it lacks (Salamander's clap,
+  // every kit's open-close hat): the samples were given SAMPLE_HEADROOM_DB of
+  // headroom at load, so the borrowed voice takes the same, or it stands out —
+  // Salamander's borrowed clap came out 4 dB over its snare and clipped.
+  if (isSampleKit(state.kit)) v *= Math.pow(10, -SAMPLE_HEADROOM_DB / 20);
 
   // ---- Hi-Hat articulation dispatch ----
   if (track === 'hh') {

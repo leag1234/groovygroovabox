@@ -208,6 +208,15 @@ the backbeat at Dynamics 50. `dynamicsWeight` returns 1 for accented hits, and
 within 1 dB of the backbeat. Synth kits' ghost is now the kit's own snare
 8 dB down; it was a separate noise burst 17–25 dB under the snare.
 
+**The synth claps were inaudible** (found by Gaël: "Clap 2&4 does nothing").
+They sat 18.5 (Acoust.), 19.2 (Electr.) and 27.2 dB (Studio) under their kit's
+snare, so the pad added 0.0–0.1 dB on 2 and 4. Recalibrated to ~2.5 dB under
+(Studio ~7 dB under: its gated clap is all peak, and Salamander borrows it).
+Also: a sampled kit's borrowed synth voices now take `SAMPLE_HEADROOM_DB` like
+its samples; without it Salamander's borrowed clap stood 4 dB over its snare
+and clipped. Measured after: the clap adds 1–4 dB on every kit, and the Rock
+groove with claps peaks under 0 dBFS everywhere (Studio −0.1).
+
 **A style also brings its Feel** (`STYLE_FEEL`), and Intensity back to 100 %.
 Intensity is capped at 150 % (it went to 300 %, where Dilla put the backbeat
 0.6 of a step late). Saved intensities above 150 are clamped on load.
