@@ -2458,57 +2458,80 @@ const WILDCARDS = [
 // everything. An intro hands over to the groove when its bar ends; an outro
 // stops the transport instead. Both land on a bar line.
 
+// Pitched toms for written figures, in the synth toms' units (see tomVoice):
+// a 4-piece kit, high rack to floor.
+const TOM_HI = 210, TOM_MID = 165, TOM_LOW = 130, TOM_FLOOR = 105;
+// The last hit of an ending has to ring out over everything: the crash sits
+// at 0.3 on the mixer, 3 to 6.5 dB under the snare, so endings lift it.
+const ENDING_CRASH_VEL = 1.8;
+
+function _gEmpty(bars) { return Array.from({ length: bars * 16 }, () => []); }
+const ramp = (n, from, to) => Array.from({ length: n }, (_, k) => from + (to - from) * (n > 1 ? k / (n - 1) : 0));
+
+// Optional fields on a gesture definition:
+//   bars         1 or 2. Events are indexed bar * 16 + step.
+//   grooveUntil  steps of the first bar where the groove keeps playing under
+//                the gesture, so an ending grows out of the groove itself.
+//   land         intros only: crash and kick on the groove's one, like a fill.
+// Per event, vel scales the level (crescendo, fade, a crash that must ring).
+
 const INTROS = [
   { id: 'sticks', label: 'Stick count (1-2-3-4)', build: () => {
-      const e = _wcEmpty16();
+      const e = _gEmpty(1);
       [0, 4, 8, 12].forEach(i =>
         e[i].push({ track: 'snare', art: 'crossstick', accent: i === 0 }));
       return e;
     } },
   { id: 'crash', label: 'Crash drop-in', build: () => {
-      const e = _wcEmpty16();
-      e[0].push({ track: 'crash', art: 'normal', accent: true });
+      const e = _gEmpty(1);
+      e[0].push({ track: 'crash', art: 'normal', accent: true, vel: ENDING_CRASH_VEL });
       e[0].push({ track: 'kick', art: 'normal', accent: true });
       for (let i = 8; i < 16; i += 2) e[i].push({ track: 'hh', art: 'closed' });
       e[15].push({ track: 'snare', art: 'normal', accent: true });
       return e;
     } },
-  { id: 'hatbuild', label: 'Hi-hat build', build: () => {
-      const e = _wcEmpty16();
+  { id: 'hatbuild', label: 'Hi-hat build', land: true, build: () => {
+      const e = _gEmpty(1);
       e[0].push({ track: 'kick', art: 'normal', accent: true });
-      for (let i = 0; i < 8; i += 2) e[i].push({ track: 'hh', art: 'closed' });
-      for (let i = 8; i < 16; i++) e[i].push({ track: 'hh', art: 'closed', accent: i >= 12 });
+      const v8 = ramp(4, 0.6, 0.8), v16 = ramp(8, 0.8, 1.15);
+      for (let n = 0; n < 4; n++) e[n * 2].push({ track: 'hh', art: 'closed', vel: v8[n] });
+      for (let i = 8; i < 16; i++) e[i].push({ track: 'hh', art: 'closed', accent: i % 2 === 0, vel: v16[i - 8] });
       e[15].push({ track: 'snare', art: 'normal', accent: true });
       return e;
     } },
-  { id: 'tombuild', label: 'Tom build', build: () => {
-      const e = _wcEmpty16();
-      const pitches = [220, 200, 180, 165, 150, 140, 130, 120];
-      pitches.forEach((pitch, n) => {
-        const i = n * 2;
-        e[i].push({ track: 'tom', art: 'normal', opts: { pitch }, accent: n % 2 === 0 });
-      });
-      for (let i = 8; i < 16; i++) e[i].push({ track: 'tom', art: 'normal', opts: { pitch: 115 - i * 2 } });
+  { id: 'tombuild', label: 'Tom build', land: true, build: () => {
+      // 8ths around the kit, then 16ths down to the floor, kick under each
+      // beat of the second half, growing all the way into the groove's one.
+      const e = _gEmpty(1);
+      const v8 = ramp(4, 0.7, 0.85);
+      [TOM_HI, TOM_MID, TOM_HI, TOM_MID].forEach((pitch, n) =>
+        e[n * 2].push({ track: 'tom', art: 'normal', opts: { pitch }, vel: v8[n] }));
+      const pitches = [TOM_HI, TOM_HI, TOM_MID, TOM_MID, TOM_LOW, TOM_LOW, TOM_FLOOR, TOM_FLOOR];
+      const v16 = ramp(8, 0.85, 1.1);
+      pitches.forEach((pitch, n) => e[8 + n].push({
+        track: 'tom', art: 'normal', opts: { pitch }, accent: n % 2 === 0, vel: v16[n] }));
+      [8, 12].forEach(i => e[i].push({ track: 'kick', art: 'normal', accent: true }));
       return e;
     } },
-  { id: 'snareroll', label: 'Snare roll', build: () => {
-      const e = _wcEmpty16();
+  { id: 'snareroll', label: 'Snare roll', land: true, build: () => {
+      const e = _gEmpty(1);
+      const v = ramp(16, 0.55, 1.1);
       for (let i = 0; i < 16; i++) {
         const late = i >= 8;
-        e[i].push({ track: 'snare', art: late ? 'normal' : 'ghost', accent: i % 4 === 0 && late });
-        if (late) e[i].push({ track: 'snare', art: 'ghost', off: 0.5 });
+        e[i].push({ track: 'snare', art: late ? 'normal' : 'ghost', accent: i % 4 === 0 && late, vel: v[i] });
+        if (late) e[i].push({ track: 'snare', art: 'normal', off: 0.5, vel: v[i] * 0.8 });
       }
       return e;
     } },
   { id: 'kickpulse', label: 'Kick pulse (dance)', build: () => {
-      const e = _wcEmpty16();
+      const e = _gEmpty(1);
       [0, 4, 8, 12].forEach(i => e[i].push({ track: 'kick', art: 'normal', accent: i === 0 }));
       [2, 6, 10].forEach(i => e[i].push({ track: 'hh', art: 'closed' }));
       e[14].push({ track: 'hh', art: 'open', accent: true });
       return e;
     } },
   { id: 'clave', label: 'Clave (latin)', build: () => {
-      const e = _wcEmpty16();
+      const e = _gEmpty(1);
       [0, 3, 6, 10, 12].forEach(i =>
         e[i].push({ track: 'snare', art: 'crossstick', accent: i === 0 }));
       [0, 8].forEach(i => e[i].push({ track: 'cowbell', art: 'normal' }));
@@ -2516,47 +2539,71 @@ const INTROS = [
     } },
 ];
 
+// Every ending lands its last hit on a downbeat and lets it ring: the old
+// tom descent and roll-out landed on beat 4 and then stopped, which reads as
+// a mistake, not an ending. The two-bar endings keep the groove for the
+// first half of the bar, play the figure over beats 3 and 4, and hit on the
+// one of the next bar.
 const OUTROS = [
   { id: 'crashstop', label: 'Crash and stop', build: () => {
-      const e = _wcEmpty16();
-      e[0].push({ track: 'crash', art: 'normal', accent: true });
+      const e = _gEmpty(1);
+      e[0].push({ track: 'crash', art: 'normal', accent: true, vel: ENDING_CRASH_VEL });
       e[0].push({ track: 'kick', art: 'normal', accent: true });
       e[0].push({ track: 'snare', art: 'normal', accent: true });
+      e[0].push({ track: 'tom', art: 'normal', opts: { pitch: TOM_FLOOR }, accent: true });
       return e;
     } },
   { id: 'triplehit', label: 'Triple hit ending', build: () => {
-      const e = _wcEmpty16();
+      // One, two, THREE: two unison hits, then the last one flammed, with the
+      // floor tom and the crash, left to ring.
+      const e = _gEmpty(1);
       [0, 4, 8].forEach(i => {
         e[i].push({ track: 'kick', art: 'normal', accent: true });
         e[i].push({ track: 'snare', art: 'normal', accent: true });
       });
-      e[8].push({ track: 'crash', art: 'normal', accent: true });
+      e[8].push({ track: 'snare', art: 'ghost', off: -0.12 });
+      e[8].push({ track: 'tom', art: 'normal', opts: { pitch: TOM_FLOOR }, accent: true });
+      e[8].push({ track: 'crash', art: 'normal', accent: true, vel: ENDING_CRASH_VEL });
       return e;
     } },
-  { id: 'tomdown', label: 'Tom descent', build: () => {
-      const e = _wcEmpty16();
-      [200, 175, 155, 140, 125, 115].forEach((pitch, n) =>
-        e[n * 2].push({ track: 'tom', art: 'normal', opts: { pitch }, accent: n === 0 }));
-      e[12].push({ track: 'crash', art: 'normal', accent: true });
-      e[12].push({ track: 'kick', art: 'normal', accent: true });
+  { id: 'tomdown', label: 'Tom descent', bars: 2, grooveUntil: 8, build: () => {
+      // Groove for beats 1 and 2, then 16ths around the kit, high rack to
+      // floor in pairs, kick under each beat, onto crash, kick and floor tom.
+      const e = _gEmpty(2);
+      const pitches = [TOM_HI, TOM_HI, TOM_MID, TOM_MID, TOM_LOW, TOM_LOW, TOM_FLOOR, TOM_FLOOR];
+      const v = ramp(8, 0.9, 1.1);
+      pitches.forEach((pitch, n) => e[8 + n].push({
+        track: 'tom', art: 'normal', opts: { pitch }, accent: n % 2 === 0, vel: v[n] }));
+      [8, 12].forEach(i => e[i].push({ track: 'kick', art: 'normal', accent: true }));
+      e[16].push({ track: 'crash', art: 'normal', accent: true, vel: ENDING_CRASH_VEL });
+      e[16].push({ track: 'kick', art: 'normal', accent: true });
+      e[16].push({ track: 'tom', art: 'normal', opts: { pitch: TOM_FLOOR }, accent: true });
       return e;
     } },
-  { id: 'rollout', label: 'Snare roll out', build: () => {
-      const e = _wcEmpty16();
-      for (let i = 0; i < 12; i++) {
-        e[i].push({ track: 'snare', art: i < 6 ? 'ghost' : 'normal', accent: i >= 10 });
-        if (i >= 6) e[i].push({ track: 'snare', art: 'ghost', off: 0.5 });
+  { id: 'rollout', label: 'Snare roll out', bars: 2, grooveUntil: 8, build: () => {
+      // Groove for beats 1 and 2, then a 32nd-note roll swelling from soft to
+      // full over beats 3 and 4, onto crash, kick and snare.
+      const e = _gEmpty(2);
+      const v = ramp(16, 0.4, 1.05);
+      for (let n = 0; n < 8; n++) {
+        e[8 + n].push({ track: 'snare', art: 'normal', vel: v[n * 2], accent: n === 7 });
+        e[8 + n].push({ track: 'snare', art: 'normal', off: 0.5, vel: v[n * 2 + 1] });
       }
-      e[12].push({ track: 'crash', art: 'normal', accent: true });
-      e[12].push({ track: 'kick', art: 'normal', accent: true });
+      e[16].push({ track: 'crash', art: 'normal', accent: true, vel: ENDING_CRASH_VEL });
+      e[16].push({ track: 'kick', art: 'normal', accent: true });
+      e[16].push({ track: 'snare', art: 'normal', accent: true });
       return e;
     } },
-  { id: 'thinout', label: 'Thin out', build: () => {
-      const e = _wcEmpty16();
-      [0, 4, 8].forEach(i => e[i].push({ track: 'kick', art: 'normal', accent: i === 0 }));
-      [0, 2, 4, 6, 8].forEach(i => e[i].push({ track: 'hh', art: 'closed' }));
-      e[4].push({ track: 'snare', art: 'normal' });
-      e[12].push({ track: 'hh', art: 'foot' });
+  { id: 'thinout', label: 'Fade out', bars: 2, build: () => {
+      // The band dropping out over two bars: the time keeps going, softer
+      // and sparser, down to a last pedal chick.
+      const e = _gEmpty(2);
+      const hv = ramp(12, 0.85, 0.25);
+      [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22].forEach((i, n) =>
+        e[i].push({ track: 'hh', art: 'closed', vel: hv[n] }));
+      [[0, 0.95], [8, 0.8], [16, 0.6]].forEach(([i, vel]) => e[i].push({ track: 'kick', art: 'normal', vel }));
+      [[4, 0.85], [12, 0.7], [20, 0.5]].forEach(([i, vel]) => e[i].push({ track: 'snare', art: 'normal', vel }));
+      e[24].push({ track: 'hh', art: 'foot', vel: 0.5 });
       return e;
     } },
 ];
@@ -2566,7 +2613,9 @@ function songFire(kind) {
   const sel = document.getElementById(kind + '-select');
   const def = list.find(g => g.id === (sel && sel.value)) || list[0];
   if (!def) return;
-  const gesture = { kind, label: def.label, events: def.build() };
+  const gesture = { kind, label: def.label, events: def.build(),
+                    bars: def.bars || 1, grooveUntil: def.grooveUntil || 0,
+                    land: !!def.land, barIdx: 0 };
 
   if (!state.playing) {
     // An outro needs something to end; from a stop, only an intro makes sense.
@@ -3265,7 +3314,8 @@ function takeCapture(track, time, accent, opts, art) {
   takeRec.events.push({ s: +s.toFixed(4), track, art, accent: !!accent,
                         pitch: (opts && opts.pitch) || undefined,
                         p: currentStepPos,      // null: a written gesture, full weight
-                        w: playingWritten || undefined });
+                        w: playingWritten || undefined,
+                        vel: (opts && opts.vel) || undefined });
 }
 
 function takeFinish(events) {
@@ -3356,7 +3406,10 @@ function takeScheduleStep(time) {
     const here = currentStepPos;
     if (ev.p !== undefined) currentStepPos = ev.p;   // takes before positions: the step
     playingWritten = !!ev.w;   // a recorded fill keeps its accent lift
-    play(ev.track, t, ev.accent, ev.pitch ? { pitch: ev.pitch } : {}, ev.art);
+    const o = {};
+    if (ev.pitch) o.pitch = ev.pitch;
+    if (ev.vel) o.vel = ev.vel;
+    play(ev.track, t, ev.accent, o, ev.art);
     playingWritten = false;
     currentStepPos = here;
   });
@@ -4873,8 +4926,38 @@ function bufferRmsDb(buf) {
 // The layer a track plays by default (see playSample).
 function defaultLayerIdx(n) { return n >= 3 ? Math.floor(n / 2) : 0; }
 
+// Strongest partial between 40 and 500 Hz in the body of a hit (20-270 ms
+// after the transient), by a direct DFT on a 2 Hz grid. Good enough to place
+// toms: it only has to tell a floor tom from a rack tom.
+function bufferBodyPitchHz(buf) {
+  const d = buf.getChannelData(0), sr = buf.sampleRate;
+  const a = bufferFirstAbove(d, bufferPeak(d) * 0.1) + Math.floor(0.02 * sr);
+  const n = Math.min(Math.floor(0.25 * sr), d.length - a);
+  if (n < sr * 0.05) return null;
+  let best = 0, bestF = null;
+  for (let f = 40; f <= 500; f += 2) {
+    const w = 2 * Math.PI * f / sr;
+    let re = 0, im = 0;
+    for (let i = 0; i < n; i++) {
+      const x = d[a + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / n));
+      re += x * Math.cos(w * i); im += x * Math.sin(w * i);
+    }
+    const m = re * re + im * im;
+    if (m > best) { best = m; bestF = f; }
+  }
+  return bestF;
+}
+
 function analyseSampleKit(kit) {
   kit.starts = {};
+  // Tom pitches, so a pitched tom figure can pick the right drum instead of
+  // speeding one sample up (see tomVoice).
+  kit.toms = [];
+  (kit.manifest['tom:normal'] || []).forEach((_, i) => {
+    const buf = kit.buffers[`tom:normal:${i}`];
+    const f = buf && bufferBodyPitchHz(buf);
+    if (f) kit.toms.push({ idx: i, f });
+  });
   kit.trackGain = {};
   kit.ghostGain = 1;
   Object.entries(kit.buffers).forEach(([key, buf]) => {
@@ -4899,6 +4982,31 @@ function analyseSampleKit(kit) {
     const db = (snare - GHOST_BELOW_SNARE_DB) - ghost;
     kit.ghostGain = Math.pow(10, Math.max(-GHOST_GAIN_LIMIT_DB, Math.min(GHOST_GAIN_LIMIT_DB, db)) / 20);
   }
+}
+
+// A pitched tom hit (fills, intros, outros pass a pitch, ~100 = floor tom,
+// ~220 = small rack tom, in the synth toms' units) on a sampled kit. It used
+// to play the middle sample sped up by pitch/110: a tom descent from 200 was
+// the same rack tom at x1.82, cartoon-short, and the floor tom never played.
+// The shipped kits have two or three real toms (Salamander: a floor tom near
+// 66 Hz and two takes of a rack tom near 139 Hz). The requested pitch is
+// mapped onto the kit's own range, the nearest real drum is chosen, and it is
+// retuned by at most 4 semitones — about what separates two toms on a kit.
+const TOM_PITCH_LOW = 100, TOM_PITCH_HIGH = 220;
+const TOM_RETUNE_MAX = Math.pow(2, 4 / 12);
+
+function tomVoice(kit, pitch) {
+  const toms = kit.toms || [];
+  if (!toms.length) return null;
+  const fs = toms.map(t => t.f);
+  const lo = Math.log(Math.min(...fs) * 0.9), hi = Math.log(Math.max(...fs) * 1.25);
+  const u = Math.max(0, Math.min(1, (Math.log(pitch) - Math.log(TOM_PITCH_LOW)) /
+                                    (Math.log(TOM_PITCH_HIGH) - Math.log(TOM_PITCH_LOW))));
+  const target = Math.exp(lo + u * (hi - lo));
+  let best = toms[0];
+  toms.forEach(t => { if (Math.abs(Math.log(target / t.f)) < Math.abs(Math.log(target / best.f))) best = t; });
+  const rate = Math.max(1 / TOM_RETUNE_MAX, Math.min(TOM_RETUNE_MAX, target / best.f));
+  return { idx: best.idx, rate };
 }
 
 // Synth kit used when a sample kit lacks a (track, articulation).
@@ -4926,7 +5034,9 @@ function playSample(kitId, trackId, artId, time, v=1, accent=false, pitch=null, 
   // 1.4 dB down: a kick on an e/a from Dynamics 50 up) drops to the softest layer instead of always sitting on the
   // middle one — the bottom layer of a 3-layer set was never played before.
   let layerIdx = 0;
-  if (list.length === 2) layerIdx = accent ? 1 : 0;
+  const tv = (trackId === 'tom' && pitch) ? tomVoice(kit, pitch) : null;
+  if (tv) layerIdx = tv.idx;
+  else if (list.length === 2) layerIdx = accent ? 1 : 0;
   else if (list.length >= 3) {
     if (accent) layerIdx = list.length - 1;
     else if (dynW != null && dynW < 0.85) layerIdx = 0;
@@ -4936,7 +5046,8 @@ function playSample(kitId, trackId, artId, time, v=1, accent=false, pitch=null, 
   if (!buf) { fb(); return; }
   const src = ctx.createBufferSource();
   src.buffer = buf;
-  src.playbackRate.value = ((trackId === 'tom' && pitch) ? pitch / 110 : 1) * dynamicsRateVariation();
+  src.playbackRate.value = (tv ? tv.rate : (trackId === 'tom' && pitch) ? pitch / 110 : 1) *
+                           dynamicsRateVariation();
   const g = ctx.createGain();
   const level = Math.max(0, Math.min(1.5, v * (accent ? 1.0 : 0.85))) *
     ((kit.trackGain && kit.trackGain[trackId]) || 1) *
@@ -5019,6 +5130,8 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   if (playingWritten && accent && (track === 'snare' || track === 'tom')) {
     v *= Math.pow(10, GESTURE_ACCENT_DB / 20);
   }
+  // A written level (crescendo, fade, a final crash that has to ring out)
+  if (opts.vel) v *= opts.vel;
 
   // Samples kit fast path: if we have a sample for this exact (track, articulation),
   // use it directly. Otherwise fall through to the synth dispatch (with the
@@ -5618,8 +5731,13 @@ function scheduleStep(stepIndex, time) {
     chaosPlanAdvance();
     // Intro/outro: the bar that just ended either hands over to the groove or
     // takes the transport down with it.
-    if (songGesture) {
+    if (songGesture && songGesture.barIdx < (songGesture.bars || 1) - 1) {
+      songGesture.barIdx++;        // a two-bar gesture carries on
+    } else if (songGesture) {
       const wasOutro = songGesture.kind === 'outro';
+      // An intro that builds up lands on the groove's one with crash and kick,
+      // the way a fill resolves (handled just below with pendingResolve).
+      if (!wasOutro && songGesture.land) state.pendingResolve = true;
       songGesture = null;
       if (wasOutro) {
         songStopping = true;
@@ -5627,7 +5745,7 @@ function scheduleStep(stepIndex, time) {
         setTimeout(() => stopPlaying(), delayMs);
       }
     }
-    if (songQueued) { songGesture = songQueued; songQueued = null; }
+    if (!songGesture && songQueued) { songGesture = songQueued; songGesture.barIdx = 0; songQueued = null; }
     // Wildcard: one full bar of a randomly drawn gesture, then back to normal
     if (wildcardActive) wildcardActive = null;
     if (wildcardQueued) {
@@ -5668,14 +5786,18 @@ function scheduleStep(stepIndex, time) {
   // ---- OUTRO TAIL: silent until the scheduled stop actually lands ----
   if (songStopping) { currentChaosGate = null; return; }
 
-  // ---- INTRO / OUTRO BAR: the gesture replaces everything ----
+  // ---- INTRO / OUTRO: the gesture replaces everything ----
+  // ...except the lead-in of its first bar (grooveUntil): an ending that
+  // starts out of the groove itself sounds played, not pasted on.
   if (songGesture) {
-    currentChaosGate = null;
-    (songGesture.events[stepIndex] || []).forEach(ev => {
+    const leadIn = songGesture.barIdx === 0 && stepIndex < (songGesture.grooveUntil || 0);
+    if (!leadIn) currentChaosGate = null;
+    (songGesture.events[songGesture.barIdx * STEPS + stepIndex] || []).forEach(ev => {
       const t = feelTime(ev.track, stepIndex, time) + (ev.off || 0) * stepDuration();
-      playWritten(ev.track, t, ev.accent || false, ev.opts || {}, ev.art || 'normal');
+      const opts = ev.vel ? { ...(ev.opts || {}), vel: ev.vel } : (ev.opts || {});
+      playWritten(ev.track, t, ev.accent || false, opts, ev.art || 'normal');
     });
-    return;
+    if (!leadIn) return;
   }
 
   // ---- TAKE PLAYBACK: the recording replaces everything ----

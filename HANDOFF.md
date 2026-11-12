@@ -208,6 +208,29 @@ the backbeat at Dynamics 50. `dynamicsWeight` returns 1 for accented hits, and
 within 1 dB of the backbeat. Synth kits' ghost is now the kit's own snare
 8 dB down; it was a separate noise burst 17–25 dB under the snare.
 
+**Intros and outros reworked** (2026-11-12, Gaël: "some outros are really
+miserable, the tom descent especially"). What was wrong, measured:
+- on sampled kits, every pitched tom hit played the *middle* tom sped up by
+  `pitch/110`: the descent was one rack tom at ×1.82, ×1.59, ×1.41…, and the
+  floor tom never played. The shipped kits hold a floor tom and one or two
+  rack toms (Salamander ~66 Hz and two takes at ~139 Hz). `tomVoice` maps the
+  requested pitch onto the kit's measured range (`kit.toms`, DFT at load),
+  picks the nearest real drum and retunes it by ≤ 4 semitones. Applies to
+  fills and wildcards too;
+- the tom descent and the roll-out landed on beat 4 and then stopped, which
+  sounds like a mistake. Every ending now lands on a downbeat and rings;
+- the final crash sat 3–6.5 dB under the snare (crash fader 0.3).
+  `ENDING_CRASH_VEL` lifts it to 1–4.5 dB under.
+Gesture engine: `bars` (1 or 2, events indexed `bar * 16 + step`),
+`grooveUntil` (the groove keeps playing under the first steps of bar 0),
+per-event `vel`, and `land` on intros (sets `pendingResolve` at handover).
+Outros: crash and stop (+ floor tom), triple hit (flammed last hit + floor +
+crash), tom descent and roll-out (2 bars, groove for beats 1–2, figure over
+3–4, hit on the next one), fade out (2 bars of decreasing level, was "thin
+out"). Intros: hat build, tom build and snare roll swell (`vel` ramps) and land.
+Not changed: the landing doubles the kick on the groove's one (the groove's
+kick plus the resolve's), as fills always did.
+
 **Accented snares and toms in written gestures get +3 dB** (`GESTURE_ACCENT_DB`,
 Gaël asked for the relaunch snare to be "at least as loud, even slightly
 louder"). At equal level it read as weaker: in a break the kit is cut and the
