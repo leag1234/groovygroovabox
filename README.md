@@ -161,6 +161,12 @@ ship without attribution.
 
 ---
 
+## Picking this up
+
+[`HANDOFF.md`](HANDOFF.md) is the orientation document: architecture, the decisions that
+look arbitrary and are not, open items, the release process and the unresolved sample
+licensing. Read it before changing the engine.
+
 ## Project layout
 
 ```
@@ -170,6 +176,7 @@ tools/inject_samples.py  Sample kit injector
 kits/                    The sample kits used to build dist/
 kits/<kit>/CREDITS       Per-kit attribution, rendered into the build
 docs/mockups/            UI mockups (desktop and mobile redesign)
+HANDOFF.md               Orientation for whoever picks this up next
 LICENSE                  WTFPL v2, verbatim
 NOTICE                   Copyright, authorship and license scope
 ```
