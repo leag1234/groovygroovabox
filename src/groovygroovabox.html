@@ -1515,12 +1515,31 @@
   }
   .arr-block:hover { background: color-mix(in srgb, var(--c) 46%, #0b0b0b); }
   .arr-block.sel { box-shadow: 0 0 0 2px #fff inset; }
-  .arr-block.playing { background: color-mix(in srgb, var(--c) 56%, #0b0b0b); }
+  .arr-block.playing { background: color-mix(in srgb, var(--c) 58%, #0b0b0b); }
+  .arr-block.dragging { opacity: 0.4; }
   .arr-blabel { display: block; font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; position: relative; }
   .arr-bsub { display: block; font-size: 8px; color: rgba(255,255,255,0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; margin-top: 2px; }
   .arr-pass { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.28); }
   .arr-mark { position: absolute; bottom: 3px; width: 2px; height: 12px; margin-left: -1px; background: #fff; border-radius: 1px; }
-  .arr-start { position: absolute; top: 0; width: 0; height: 0; margin-left: -5px; border: 5px solid transparent; border-top: 7px solid var(--accent); pointer-events: none; }
+  .arr-start {
+    position: absolute; top: 0; height: 88px; width: 14px; margin-left: -7px; cursor: ew-resize; z-index: 3;
+  }
+  .arr-start::before {   /* the flag on the ruler */
+    content: ''; position: absolute; left: 0; top: 0;
+    border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 10px solid var(--accent);
+  }
+  .arr-start::after {    /* a faint line down the lane */
+    content: ''; position: absolute; left: 6px; top: 10px; bottom: 0; width: 2px;
+    background: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .arr-start:hover::before { border-top-color: #fff; }
+  .arr-insert { display: none; position: absolute; top: 20px; bottom: 0; width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 8px #fff; pointer-events: none; z-index: 4; }
+  .arr-dropzone {
+    position: absolute; top: 0; height: 64px; box-sizing: border-box;
+    border: 1px dashed #333; border-radius: 3px; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; letter-spacing: 0.08em; color: #444; white-space: nowrap; overflow: hidden;
+  }
+  .arr-lane:has(.arr-dropzone) .arr-dropzone:hover { border-color: var(--accent); color: var(--accent); }
   .arr-cursor { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); pointer-events: none; }
   .arr-inspector { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; min-height: 28px; }
   .arr-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
@@ -1690,6 +1709,7 @@
       <button class="bank-btn arr-small" id="arr-rename" title="Rename this song">Rename</button>
       <button class="bank-icon danger" id="arr-del" title="Delete this song">✕</button>
       <span class="arr-sep"></span>
+      <button class="bank-icon" id="arr-home" title="Back to the start of the song">⏮</button>
       <button class="bank-btn arr-small" id="arr-rec" title="Armed: the pads you press while the song plays are written into it, at the step they land on, and replay every time.">● Rec pads</button>
       <button class="bank-btn arr-small" id="arr-midi" title="Download the whole song as a MIDI file">♪ MIDI</button>
       <span class="arr-pos" id="arr-pos"></span>
@@ -3516,6 +3536,7 @@ function takeSave(name, events, recipe) {
     bars: TAKE_BARS,
     bpm: state.bpm,
     kit: state.kit,
+    style: state.currentPattern,     // colours the take by style in the song view
     events,
     recipe: recipe || undefined,
   };
@@ -4070,13 +4091,39 @@ function arrSetView(view) {
 // it in the bar underneath; drag blocks to reorder; drag or click a take in
 // the palette to add it.
 
-const TAKE_COLORS = ['#ff7043', '#4fc3f7', '#9ccc65', '#ba68c8', '#ffca28',
-                     '#f06292', '#4db6ac', '#9575cd', '#d4e157', '#e57373', '#64b5f6', '#ffb74d'];
-function takeColor(id) {
-  let h = 0;
-  for (let i = 0; i < (id || '').length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return TAKE_COLORS[h % TAKE_COLORS.length];
+// One hue per style, so a song reads at a glance (all the Funk takes
+// yellow, all the Breakbeat takes blue), and a different shade for each take
+// of that style, in the order they were recorded.
+const STYLE_HUES = {
+  rock: 4, funk: 46, breakbeat: 208, shuffle: 28, motown: 330, punk: 352, secondline: 18,
+  disco: 300, house: 186, garage: 168, dnb: 232,
+  hiphop: 36, rnb2000: 272, trap: 256, reggae: 122, dancehall: 96,
+  son: 14, rumba: 8, chacha: 340, bossa: 150, samba: 60, bodiddley: 24, afrobeat: 80,
+};
+const SHADES = [56, 70, 44, 78, 38, 64];
+// Style of a take: stored since this version; for older takes, the pattern
+// whose name starts the take's name ("Funk take 2" is Funk), else its first word.
+function takeStyle(t) {
+  if (t.style) return t.style;
+  const name = (t.name || '').toLowerCase();
+  const hit = Object.entries(PATTERNS).find(([k, p]) => p.name && name.startsWith(p.name.toLowerCase()));
+  return hit ? hit[0] : (name.split(/\s+/)[0] || 'take');
 }
+function takeColorMap(takes) {
+  const byStyle = {};
+  takes.slice().sort((a, b) => (a.created || 0) - (b.created || 0)).forEach(t => {
+    (byStyle[takeStyle(t)] = byStyle[takeStyle(t)] || []).push(t);
+  });
+  const map = new Map();
+  Object.entries(byStyle).forEach(([style, list]) => {
+    let hue = STYLE_HUES[style];
+    if (hue == null) { let h = 0; for (const ch of style) h = (h * 31 + ch.charCodeAt(0)) >>> 0; hue = h % 360; }
+    list.forEach((t, i) => map.set(t.id, `hsl(${hue}, 72%, ${SHADES[i % SHADES.length]}%)`));
+  });
+  return map;
+}
+let arrColors = new Map();
+const takeColor = id => arrColors.get(id) || '#888';
 const SECTION_LABELS = ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Bridge', 'Solo', 'Break', 'Outro'];
 const ARR_MIN_PX_PER_BAR = 18;
 const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -4101,6 +4148,7 @@ function arrRender() {
   sel.innerHTML = songs.length
     ? songs.map(s => `<option value="${s.id}"${s.id === arr.songId ? ' selected' : ''}>${escHtml(s.name)}</option>`).join('')
     : '<option value="">— no songs —</option>';
+  arrColors = takeColorMap(takesRead());
   arrRenderPalette();
   arrRenderTimeline();
   arrRenderInspector();
@@ -4110,7 +4158,9 @@ function arrRenderPalette() {
   const box = document.getElementById('arr-palette');
   const takes = takesRead();
   if (!takes.length) { box.innerHTML = '<span class="arr-note">No takes yet — record some in the Live view.</span>'; return; }
-  box.innerHTML = takes.map(t => `<span class="arr-chip" draggable="true" data-take="${t.id}"
+  const ordered = takes.slice().sort((a, b) =>
+    takeStyle(a).localeCompare(takeStyle(b)) || (a.created || 0) - (b.created || 0));
+  box.innerHTML = ordered.map(t => `<span class="arr-chip" draggable="true" data-take="${t.id}"
       title="Click: add after the selected block (or at the end). Drag: drop it where you want.${t.recipe ? '' : ' Recorded before recipes: plays as recorded, without pads.'}"
       style="--c:${takeColor(t.id)}">${escHtml(t.name)}${t.recipe ? '' : ' ·'}</span>`).join('');
 }
@@ -4127,7 +4177,9 @@ function arrRenderTimeline() {
     return;
   }
   const avail = Math.max(200, wrap.clientWidth - 2);
-  const shown = Math.max(bars, 8);
+  // Always leave free room after the last block to drop takes onto
+  const tail = Math.max(4, Math.ceil(bars * 0.12));
+  const shown = Math.max(bars + tail, 8);
   arr.px = Math.max(ARR_MIN_PX_PER_BAR, avail / shown);
   const W = Math.round(shown * arr.px);
   const px = arr.px;
@@ -4151,16 +4203,22 @@ function arrRenderTimeline() {
       inner += `<span class="arr-mark" style="left:${at}px" title="${escHtml(ev.type === 'alter' ? `${ev.id} ${ev.on ? 'on' : 'off'}` : ev.type === 'hold' ? `${ev.id} ${ev.on ? 'held' : 'released'}` : ev.type === 'wc' ? 'wildcard' : ev.id)}"></span>`;
     });
     const label = sec.label || '';
+    const nbars = e.bars * sec.repeats;
+    const size = `${nbars} bar${nbars > 1 ? 's' : ''}${sec.repeats > 1 ? ` · ${e.bars}×${sec.repeats}` : ''}`;
     return `<div class="arr-block${arr.sel === e.si ? ' sel' : ''}" draggable="true" data-si="${e.si}"
-        style="left:${x}px;width:${w}px;--c:${c}" title="${escHtml((label ? label + ' — ' : '') + e.take.name)} ×${sec.repeats}">
+        style="left:${x}px;width:${w}px;--c:${c}" title="${escHtml((label ? label + ' — ' : '') + e.take.name)} · ${size}">
         ${inner}<span class="arr-blabel">${escHtml(label || e.take.name)}</span>
-        <span class="arr-bsub">${label ? escHtml(e.take.name) + ' ' : ''}×${sec.repeats}</span></div>`;
+        <span class="arr-bsub">${label ? escHtml(e.take.name) + ' · ' : ''}${size}</span></div>`;
   }).join('');
   const startX = arr.startG / STEPS * px;
+  const endX = bars * px;
   wrap.innerHTML = `<div class="arr-canvas" style="width:${W}px">
-      <div class="arr-ruler" title="Click to set where Play starts">${ruler}</div>
-      <div class="arr-lane">${blocks}</div>
-      <span class="arr-start" style="left:${startX}px" title="Play starts here"></span>
+      <div class="arr-ruler" title="Click, or drag the orange marker, to set where Play starts">${ruler}</div>
+      <div class="arr-lane">${blocks}
+        <div class="arr-dropzone" style="left:${endX}px;width:${W - endX}px">+ drop a take here</div>
+      </div>
+      <span class="arr-insert" id="arr-insert"></span>
+      <span class="arr-start" id="arr-start" style="left:${startX}px" title="Play starts here — drag me"></span>
       <span class="arr-cursor" id="arr-cursor" style="left:${startX}px"></span>
     </div>`;
   const missing = (song.sections || []).filter(s => !takesRead().find(t => t.id === s.takeId)).length;
@@ -4354,6 +4412,7 @@ function bindArranger() {
   // Timeline: select, set start, reorder by drag
   const wrap = document.getElementById('arr-timeline');
   wrap.addEventListener('click', e => {
+    if (e.target.closest('#arr-start')) return;
     if (e.target.closest('.arr-ruler')) {
       const r = wrap.querySelector('.arr-canvas').getBoundingClientRect();
       const bar = Math.max(0, Math.floor((e.clientX - r.left) / arr.px));
@@ -4378,19 +4437,36 @@ function bindArranger() {
     const block = e.target.closest('.arr-block');
     if (block) e.dataTransfer.setData('text/plain', 'sec:' + block.dataset.si);
   });
-  wrap.addEventListener('dragover', e => { if (e.target.closest('.arr-lane, .arr-empty, .arr-canvas')) e.preventDefault(); });
+  // Where a drop at clientX lands: the index to insert at, and the x of the
+  // gap it goes into (for the insertion line)
+  const dropSlot = clientX => {
+    const song = songCurrent();
+    const blocks = [...wrap.querySelectorAll('.arr-block')];
+    const canvas = wrap.querySelector('.arr-canvas');
+    const left = canvas ? canvas.getBoundingClientRect().left : 0;
+    for (const b of blocks) {
+      const r = b.getBoundingClientRect();
+      if (clientX < r.left + r.width / 2) return { at: +b.dataset.si, x: r.left - left };
+    }
+    const last = blocks[blocks.length - 1];
+    return { at: song ? song.sections.length : 0, x: last ? last.getBoundingClientRect().right - left : 0 };
+  };
+  const hideInsert = () => { const l = document.getElementById('arr-insert'); if (l) l.style.display = 'none'; };
+  wrap.addEventListener('dragover', e => {
+    if (!e.target.closest('.arr-lane, .arr-empty, .arr-canvas')) return;
+    e.preventDefault();
+    const line = document.getElementById('arr-insert');
+    if (line) { line.style.display = 'block'; line.style.left = dropSlot(e.clientX).x + 'px'; }
+  });
+  wrap.addEventListener('dragleave', e => { if (!wrap.contains(e.relatedTarget)) hideInsert(); });
+  document.addEventListener('dragend', hideInsert);
   wrap.addEventListener('drop', e => {
     e.preventDefault();
+    hideInsert();
     const data = e.dataTransfer.getData('text/plain') || '';
     const song = songCurrent();
     if (!song) return;
-    // Index to insert at, from where the drop lands among the blocks
-    let at = song.sections.length;
-    const blocks = [...wrap.querySelectorAll('.arr-block')];
-    for (const b of blocks) {
-      const r = b.getBoundingClientRect();
-      if (e.clientX < r.left + r.width / 2) { at = +b.dataset.si; break; }
-    }
+    const at = e.target.closest('.arr-dropzone') ? song.sections.length : dropSlot(e.clientX).at;
     if (data.startsWith('take:')) { arrInsertTake(data.slice(5), at); return; }
     if (data.startsWith('sec:')) {
       const from = +data.slice(4);
@@ -4401,6 +4477,41 @@ function bindArranger() {
         arr.sel = to;
       });
     }
+  });
+
+  // Start marker: drag it along the ruler, snapping to bars
+  wrap.addEventListener('pointerdown', e => {
+    const handle = e.target.closest('#arr-start');
+    if (!handle) return;
+    e.preventDefault();
+    const canvas = wrap.querySelector('.arr-canvas');
+    const { total } = arrLayoutTimeline();
+    const maxBar = Math.max(0, Math.ceil(total / STEPS) - 1);
+    const barAt = x => Math.max(0, Math.min(maxBar, Math.round((x - canvas.getBoundingClientRect().left) / arr.px)));
+    let bar = Math.round(arr.startG / STEPS);
+    const move = ev => {
+      bar = barAt(ev.clientX);
+      handle.style.left = (bar * arr.px) + 'px';
+      if (!arr.playing) { const c = document.getElementById('arr-cursor'); if (c) c.style.left = handle.style.left; arrUpdateClock(bar * STEPS); }
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      arr.startG = bar * STEPS;
+      if (state.playing) stopPlaying();
+      arrRenderTimeline();
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+  document.getElementById('arr-home').addEventListener('click', e => {
+    e.currentTarget.blur();
+    const wasPlaying = state.playing;
+    if (wasPlaying) stopPlaying();
+    arr.startG = 0;
+    wrap.scrollLeft = 0;
+    arrRenderTimeline();
+    if (wasPlaying) startPlaying();
   });
 
   // Edit bar

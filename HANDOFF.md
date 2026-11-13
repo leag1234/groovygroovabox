@@ -323,6 +323,10 @@ same latency/A-V offset as `playheadLoop`. Play starts at `arr.startG`
 (ruler click, always a bar line). Edits go through `arrEdit` (stops playback,
 except for renaming). The pad keyboard handler now ignores ⌘/Ctrl, or ⌘C/⌘D/⌘V
 would also have fired the C, D and V pads.
+Second pass after Gaël's review: colours by style (`STYLE_HUES`, one hue per
+pattern, shades by recording order; takes now store `style`, older ones are
+matched by name), a free drop zone after the last block plus a white
+insertion line while dragging, a draggable start marker and a ⏮ button.
 
 **The Ghost pad is locked** (it was known gap 1): `rollChaosPlan` also rolls
 `ghostMasks`, one per bar, replayed with the plan, instead of a 60 % coin on
