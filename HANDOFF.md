@@ -313,6 +313,17 @@ hit for hit on every pass. Pad moves live inside one pass of a section
 arming if that step is a bar line** — the take covers the bar that starts
 then, which caught a test of mine out.
 
+**The Song view is a timeline** (2026-11-13, Gaël: the card list took too
+much room and showed no time). One lane; blocks `left = startG / 16 * px`,
+`px` fitted to the width with an 18 px/bar floor (then it scrolls and follows
+the cursor). Colours come from a hash of the take id (`takeColor`), so a take
+keeps its colour. The cursor is its own rAF loop (`arrCursorLoop`) reading
+`arr.vq`, filled by `arrBeforeStep` with each scheduled step's time, with the
+same latency/A-V offset as `playheadLoop`. Play starts at `arr.startG`
+(ruler click, always a bar line). Edits go through `arrEdit` (stops playback,
+except for renaming). The pad keyboard handler now ignores ⌘/Ctrl, or ⌘C/⌘D/⌘V
+would also have fired the C, D and V pads.
+
 **The Ghost pad is locked** (it was known gap 1): `rollChaosPlan` also rolls
 `ghostMasks`, one per bar, replayed with the plan, instead of a 60 % coin on
 every hit. Without it no song could replay the same way twice.

@@ -1482,9 +1482,8 @@
   body.view-song .pattern-bar, body.view-song #sequencer { display: none; }
   body:not(.view-song) #arranger { display: none; }
   .arranger {
-    padding: 14px 20px 18px;
+    padding: 12px 20px 14px;
     background: linear-gradient(180deg, #0d0d0d, #080808);
-    min-height: 220px;
   }
   .arr-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   #arr-song { min-width: 180px; }
@@ -1492,29 +1491,48 @@
   .arr-sep { width: 12px; }
   #arr-rec.recording { color: var(--red); border-color: var(--red); animation: takepulse 1s ease-in-out infinite; }
   .arr-pos { font-size: 10px; color: var(--cyan); letter-spacing: 0.08em; margin-left: auto; }
-  .arr-sections { display: flex; flex-direction: column; gap: 6px; }
-  .arr-sec {
-    display: grid;
-    grid-template-columns: 28px minmax(140px, 1fr) auto 110px 150px auto;
-    gap: 10px; align-items: center;
-    padding: 6px 10px; background: #111; border: 1px solid var(--line-2); border-radius: 3px;
+  .arr-palette { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; min-height: 22px; align-items: center; }
+  .arr-chip {
+    padding: 3px 9px; font-size: 9px; letter-spacing: 0.06em; color: #000; cursor: grab;
+    background: var(--c); border-radius: 10px; user-select: none; white-space: nowrap;
   }
-  .arr-sec.playing { border-color: var(--green); box-shadow: 0 0 10px rgba(127,255,90,0.25); }
-  .arr-num { font-size: 14px; color: var(--accent); text-align: center; }
-  .arr-take { min-width: 0; }
-  .arr-rep { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink); }
-  .arr-rep span { min-width: 26px; text-align: center; }
-  .arr-len, .arr-auto { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.06em; }
-  .arr-auto { display: flex; align-items: center; gap: 6px; }
-  .arr-tools { display: flex; gap: 4px; }
-  .arr-add { margin-top: 10px; width: auto; }
-  .arr-add:disabled { opacity: 0.4; cursor: default; }
-  .arr-empty { font-size: 11px; color: var(--ink-faint); padding: 18px 4px; }
-  .arr-hint { margin-top: 12px; font-size: 9px; color: var(--ink-faint); letter-spacing: 0.04em; line-height: 1.6; }
-  @media (max-width: 760px) {
-    .arr-sec { grid-template-columns: 24px 1fr; }
-    .arr-sec > :nth-child(n+3) { grid-column: 2; }
+  .arr-chip:hover { filter: brightness(1.15); }
+  .arr-timeline {
+    position: relative; overflow-x: auto; overflow-y: hidden;
+    background: #070707; border: 1px solid var(--line-2); border-radius: 3px;
   }
+  .arr-canvas { position: relative; height: 92px; overflow: hidden; }
+  .arr-ruler { position: absolute; left: 0; right: 0; top: 0; height: 20px; cursor: pointer; border-bottom: 1px solid var(--line-2); background: #0c0c0c; }
+  .arr-bar-n { position: absolute; top: 3px; padding-left: 3px; font-size: 8px; color: var(--ink-faint); pointer-events: none; }
+  .arr-tick { position: absolute; bottom: 0; width: 1px; height: 6px; background: #333; pointer-events: none; }
+  .arr-tick.major { height: 20px; background: #3a3a3a; }
+  .arr-tick.beat { height: 3px; background: #262626; }
+  .arr-lane { position: absolute; left: 0; right: 0; top: 24px; height: 64px; }
+  .arr-block {
+    position: absolute; top: 0; height: 64px; box-sizing: border-box; overflow: hidden;
+    background: color-mix(in srgb, var(--c) 34%, #0b0b0b); border: 1px solid var(--c);
+    border-radius: 3px; cursor: pointer; padding: 5px 6px;
+  }
+  .arr-block:hover { background: color-mix(in srgb, var(--c) 46%, #0b0b0b); }
+  .arr-block.sel { box-shadow: 0 0 0 2px #fff inset; }
+  .arr-block.playing { background: color-mix(in srgb, var(--c) 56%, #0b0b0b); }
+  .arr-blabel { display: block; font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; position: relative; }
+  .arr-bsub { display: block; font-size: 8px; color: rgba(255,255,255,0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; margin-top: 2px; }
+  .arr-pass { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.28); }
+  .arr-mark { position: absolute; bottom: 3px; width: 2px; height: 12px; margin-left: -1px; background: #fff; border-radius: 1px; }
+  .arr-start { position: absolute; top: 0; width: 0; height: 0; margin-left: -5px; border: 5px solid transparent; border-top: 7px solid var(--accent); pointer-events: none; }
+  .arr-cursor { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); pointer-events: none; }
+  .arr-inspector { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; min-height: 28px; }
+  .arr-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+  .arr-ilbl { font-size: 10px; color: var(--ink); letter-spacing: 0.06em; margin-right: 4px; }
+  #arr-label { width: 120px; padding: 4px 7px; font-family: inherit; font-size: 10px; color: var(--ink); background: #000; border: 1px solid var(--line-2); border-radius: 2px; }
+  #arr-label:focus { outline: none; border-color: var(--accent); }
+  #arr-take { min-width: 140px; max-width: 220px; }
+  .arr-rep { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink); }
+  .arr-rep span { min-width: 24px; text-align: center; }
+  .arr-inspector .bank-btn:disabled { opacity: 0.35; cursor: default; }
+  .arr-note { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.04em; line-height: 1.6; }
+  .arr-empty { padding: 30px 12px; }
 </style>
 </head>
 <body>
@@ -1676,9 +1694,9 @@
       <button class="bank-btn arr-small" id="arr-midi" title="Download the whole song as a MIDI file">♪ MIDI</button>
       <span class="arr-pos" id="arr-pos"></span>
     </div>
-    <div class="arr-sections" id="arr-sections"></div>
-    <button class="bank-btn arr-add" id="arr-add">+ Add section</button>
-    <div class="arr-hint">Play (Space) runs the song from the top, ▶ on a section from there. The pads work as in the Live view; with <b>Rec pads</b> armed they are recorded into the song. Tempo and kit apply to the whole song.</div>
+    <div class="arr-palette" id="arr-palette"></div>
+    <div class="arr-timeline" id="arr-timeline"></div>
+    <div class="arr-inspector" id="arr-inspector"></div>
   </section>
 
   <!-- BOTTOM CONSOLE: live pads (left) + settings tabs (right) -->
@@ -3744,7 +3762,7 @@ let midiCollect = null;   // set while a song is exported: play() hands hits her
 
 const arr = {
   view: 'live', playing: false, simulating: false, rec: false,
-  songId: null, startSi: 0,
+  songId: null,
   timeline: [], total: 0, g: 0, ended: false, pos: null,
   over: new Map(), holdOver: new Set(), repKey: null, frame: null, lastFrame: null,
   chaosFig: null, chaosFigStr: null, chaosPause: null, wcThisBar: null,
@@ -3802,8 +3820,8 @@ function arrStart() {
   const { tl, total } = arrBuildTimeline(song);
   if (!total) { setPatternStatus('Add a section with a take first'); return false; }
   arr.timeline = tl; arr.total = total;
-  const startEntry = tl.find(e => e.si >= arr.startSi) || tl[0];
-  arr.g = startEntry.startG;
+  arr.g = Math.min(Math.max(0, arr.startG || 0), total - 1);
+  arr.g -= arr.g % STEPS;                  // always from a bar line
   arr.ended = false; arr.repKey = null; arr.lastFrame = null; arr.frame = null;
   arr.over.clear(); arr.holdOver.clear();
   arr.chaosFig = null; arr.chaosFigStr = null; arr.chaosPause = null; arr.wcThisBar = null;
@@ -3812,6 +3830,7 @@ function arrStart() {
   song.bpm = state.bpm; song.kit = state.kit;
   songPut(song);
   arr.playing = true;
+  if (!arr.simulating) arrCursorStart();
   return true;
 }
 
@@ -3824,11 +3843,10 @@ function arrOnStop() {
   wildcardActive = null; wildcardQueued = false;
   arr.over.clear(); arr.holdOver.clear();
   state.alterations = new Set(); state.holding = new Set();
-  arr.startSi = 0;
   if (!arr.simulating) {
     arrSyncPads();
     document.querySelectorAll('.pad.momentary').forEach(p => p.classList.remove('holding'));
-    arrShowPosition(null);
+    arrCursorStop();
   }
 }
 
@@ -3885,7 +3903,7 @@ function arrBeforeStep(time) {
     if (ev.rep === pos.rep && ev.k === pos.k) arrApplyAuto(ev, barStart);
   });
   arrApplyPads();
-  if (barStart && !arr.simulating) arrShowPosition(pos, time);
+  if (!arr.simulating) arr.vq.push({ g: arr.g, time });
   return true;
 }
 
@@ -3938,7 +3956,8 @@ function arrRecord(ev, g) {
   section.auto.push({ ...ev, rep: pos.rep, k: pos.k });
   pos.entry.section.auto = section.auto;      // the running timeline sees it too
   songPut(song);
-  arrRenderCount(pos.entry.si, section.auto.length);
+  arrRenderTimeline();   // show the new pad mark
+  if (arr.sel === pos.entry.si) arrRenderInspector();
 }
 function arrToggle(id) {
   if (!arr.playing) { setPatternStatus('Play the song to use the pads'); setTimeout(() => setPatternStatus(''), 1800); return; }
@@ -3970,8 +3989,8 @@ function arrExportMidi() {
   audio();
   const snap = engineSnapshot();
   const events = [];
-  const startSi = arr.startSi;
-  arr.startSi = 0;
+  const startG = arr.startG;
+  arr.startG = 0;
   arr.simulating = true;
   try {
     if (!arrStart()) return;
@@ -3999,7 +4018,7 @@ function arrExportMidi() {
     midiCollect = null;
     arrOnStop();
     arr.simulating = false;
-    arr.startSi = startSi;
+    arr.startG = startG;
     hatRinging = null;
     engineRestore(snap);
   }
@@ -4041,26 +4060,39 @@ function arrSetView(view) {
   setPatternStatus('');
 }
 
-// ---- UI ----
-function arrShowPosition(pos, time) {
-  const show = () => {
-    if (pos && !arr.playing) return;     // a late update after a stop
-    const el = document.getElementById('arr-pos');
-    document.querySelectorAll('.arr-sec').forEach(c =>
-      c.classList.toggle('playing', !!pos && +c.dataset.si === pos.entry.si));
-    if (!el) return;
-    if (!pos) { el.textContent = ''; return; }
-    const e = pos.entry;
-    el.textContent = `Section ${e.si + 1} · pass ${pos.rep + 1}/${e.section.repeats} · bar ${Math.floor(pos.k / STEPS) + 1}/${e.bars}`;
-  };
-  if (time == null) { show(); return; }
-  setTimeout(show, Math.max(0, (time - ctx.currentTime) * 1000));
+// ---- UI: a timeline, like a DAW arrange window ----
+// One lane. Each section is a block, as wide as its bars, coloured by its
+// take, named by its role (Verse, Chorus...), with a thin line between
+// passes and a tick for every recorded pad move. A ruler on top counts bars
+// and beats; clicking it sets where Play starts. While the song plays, a
+// cursor follows the audio clock (same latency and A/V offset as the live
+// playhead) and the lane scrolls to keep it in view. Click a block to edit
+// it in the bar underneath; drag blocks to reorder; drag or click a take in
+// the palette to add it.
+
+const TAKE_COLORS = ['#ff7043', '#4fc3f7', '#9ccc65', '#ba68c8', '#ffca28',
+                     '#f06292', '#4db6ac', '#9575cd', '#d4e157', '#e57373', '#64b5f6', '#ffb74d'];
+function takeColor(id) {
+  let h = 0;
+  for (let i = 0; i < (id || '').length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return TAKE_COLORS[h % TAKE_COLORS.length];
 }
-function arrRenderCount(si, n) {
-  const el = document.querySelector(`.arr-sec[data-si="${si}"] .arr-auto-n`);
-  if (el) el.textContent = n ? `${n} pad move${n > 1 ? 's' : ''}` : 'no pad moves';
-}
+const SECTION_LABELS = ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Bridge', 'Solo', 'Break', 'Outro'];
+const ARR_MIN_PX_PER_BAR = 18;
 const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+arr.sel = null;        // selected section index
+arr.clip = null;       // copied section
+arr.startG = 0;        // where Play starts, in song steps (always a bar line)
+arr.px = 24;           // pixels per bar, set by the layout
+arr.vq = [];           // {g, time} of scheduled steps, for the cursor
+arr.raf = null;
+
+function arrLayoutTimeline() {
+  const song = songCurrent();
+  const { tl, total } = song ? arrBuildTimeline(song) : { tl: [], total: 0 };
+  return { song, tl, total, bars: Math.ceil(total / STEPS) };
+}
 
 function arrRender() {
   const songs = songsRead();
@@ -4069,51 +4101,192 @@ function arrRender() {
   sel.innerHTML = songs.length
     ? songs.map(s => `<option value="${s.id}"${s.id === arr.songId ? ' selected' : ''}>${escHtml(s.name)}</option>`).join('')
     : '<option value="">— no songs —</option>';
-  const song = songCurrent();
-  const takes = takesRead();
-  const box = document.getElementById('arr-sections');
-  document.getElementById('arr-add').disabled = !song;
-  if (!song) {
-    box.innerHTML = '<div class="arr-empty">Create a song, then add sections. A section plays one of your takes, as many times as you set. Record takes in the Live view.</div>';
-    return;
-  }
-  if (!song.sections.length) {
-    box.innerHTML = '<div class="arr-empty">No sections yet. Add one, pick a take, set how many times it repeats.</div>';
-    return;
-  }
-  const takeOpts = id => (takes.length ? takes : []).map(t =>
-    `<option value="${t.id}"${t.id === id ? ' selected' : ''}>${escHtml(t.name)}${t.recipe ? '' : ' (no pads)'}</option>`).join('')
-    + (takes.find(t => t.id === id) ? '' : `<option value="" selected>— pick a take —</option>`);
-  let bar = 1;
-  box.innerHTML = song.sections.map((sec, si) => {
-    const take = takes.find(t => t.id === sec.takeId);
-    const bars = take ? (take.bars || TAKE_BARS) * sec.repeats : 0;
-    const from = bar; bar += bars;
-    const n = (sec.auto || []).length;
-    return `<div class="arr-sec" data-si="${si}">
-      <span class="arr-num">${si + 1}</span>
-      <select class="arr-take" data-act="take">${takeOpts(sec.takeId)}</select>
-      <span class="arr-rep"><button class="bank-icon" data-act="rep-">−</button><span>×${sec.repeats}</span><button class="bank-icon" data-act="rep+">+</button></span>
-      <span class="arr-len">${bars ? `bars ${from}–${from + bars - 1}` : '—'}</span>
-      <span class="arr-auto"><span class="arr-auto-n">${n ? `${n} pad move${n > 1 ? 's' : ''}` : 'no pad moves'}</span>
-        <button class="bank-icon" data-act="clear" title="Erase this section's pad moves">⌫</button></span>
-      <span class="arr-tools">
-        <button class="bank-icon" data-act="play" title="Play the song from this section">▶</button>
-        <button class="bank-icon" data-act="up" title="Move up">↑</button>
-        <button class="bank-icon" data-act="down" title="Move down">↓</button>
-        <button class="bank-icon danger" data-act="del" title="Remove this section">✕</button>
-      </span>
-    </div>`;
-  }).join('');
+  arrRenderPalette();
+  arrRenderTimeline();
+  arrRenderInspector();
 }
 
-function arrEdit(fn) {
+function arrRenderPalette() {
+  const box = document.getElementById('arr-palette');
+  const takes = takesRead();
+  if (!takes.length) { box.innerHTML = '<span class="arr-note">No takes yet — record some in the Live view.</span>'; return; }
+  box.innerHTML = takes.map(t => `<span class="arr-chip" draggable="true" data-take="${t.id}"
+      title="Click: add after the selected block (or at the end). Drag: drop it where you want.${t.recipe ? '' : ' Recorded before recipes: plays as recorded, without pads.'}"
+      style="--c:${takeColor(t.id)}">${escHtml(t.name)}${t.recipe ? '' : ' ·'}</span>`).join('');
+}
+
+function arrRenderTimeline() {
+  const wrap = document.getElementById('arr-timeline');
+  const { song, tl, total, bars } = arrLayoutTimeline();
+  if (!song) {
+    wrap.innerHTML = '<div class="arr-note arr-empty">Create a song with + New, then add takes from the palette.</div>';
+    return;
+  }
+  if (!tl.length) {
+    wrap.innerHTML = '<div class="arr-note arr-empty">Empty song. Click or drag a take from the palette to add a section.</div>';
+    return;
+  }
+  const avail = Math.max(200, wrap.clientWidth - 2);
+  const shown = Math.max(bars, 8);
+  arr.px = Math.max(ARR_MIN_PX_PER_BAR, avail / shown);
+  const W = Math.round(shown * arr.px);
+  const px = arr.px;
+  // Ruler: a number on every bar, or every 4 when bars get narrow; beat ticks when there is room
+  const every = px >= 26 ? 1 : px >= 12 ? 4 : 8;
+  let ruler = '';
+  for (let b = 0; b < shown; b++) {
+    const x = Math.round(b * px);
+    if (b % every === 0) ruler += `<span class="arr-bar-n" style="left:${x}px">${b + 1}</span>`;
+    ruler += `<span class="arr-tick${b % 4 === 0 ? ' major' : ''}" style="left:${x}px"></span>`;
+    if (px >= 40) for (let q = 1; q < 4; q++) ruler += `<span class="arr-tick beat" style="left:${Math.round(x + q * px / 4)}px"></span>`;
+  }
+  const blocks = tl.map(e => {
+    const x = e.startG / STEPS * px, w = e.len / STEPS * px;
+    const c = takeColor(e.take.id);
+    const sec = e.section;
+    let inner = '';
+    for (let r = 1; r < sec.repeats; r++) inner += `<span class="arr-pass" style="left:${r * e.bars * px}px"></span>`;
+    (sec.auto || []).forEach(ev => {
+      const at = (ev.rep * e.bars * STEPS + ev.k) / STEPS * px;
+      inner += `<span class="arr-mark" style="left:${at}px" title="${escHtml(ev.type === 'alter' ? `${ev.id} ${ev.on ? 'on' : 'off'}` : ev.type === 'hold' ? `${ev.id} ${ev.on ? 'held' : 'released'}` : ev.type === 'wc' ? 'wildcard' : ev.id)}"></span>`;
+    });
+    const label = sec.label || '';
+    return `<div class="arr-block${arr.sel === e.si ? ' sel' : ''}" draggable="true" data-si="${e.si}"
+        style="left:${x}px;width:${w}px;--c:${c}" title="${escHtml((label ? label + ' — ' : '') + e.take.name)} ×${sec.repeats}">
+        ${inner}<span class="arr-blabel">${escHtml(label || e.take.name)}</span>
+        <span class="arr-bsub">${label ? escHtml(e.take.name) + ' ' : ''}×${sec.repeats}</span></div>`;
+  }).join('');
+  const startX = arr.startG / STEPS * px;
+  wrap.innerHTML = `<div class="arr-canvas" style="width:${W}px">
+      <div class="arr-ruler" title="Click to set where Play starts">${ruler}</div>
+      <div class="arr-lane">${blocks}</div>
+      <span class="arr-start" style="left:${startX}px" title="Play starts here"></span>
+      <span class="arr-cursor" id="arr-cursor" style="left:${startX}px"></span>
+    </div>`;
+  const missing = (song.sections || []).filter(s => !takesRead().find(t => t.id === s.takeId)).length;
+  if (missing) wrap.insertAdjacentHTML('beforeend', `<div class="arr-note">${missing} section${missing > 1 ? 's use a deleted take and are' : ' uses a deleted take and is'} skipped.</div>`);
+  arrUpdateClock(arr.startG);
+}
+
+function arrRenderInspector() {
+  const box = document.getElementById('arr-inspector');
+  const song = songCurrent();
+  const sec = song && arr.sel != null ? song.sections[arr.sel] : null;
+  if (!sec) {
+    box.innerHTML = `<span class="arr-note">Click a block to edit it · drag blocks to reorder · ⌘C ⌘V ⌘D, Delete, ← → work on the selection · click the ruler to choose where Play starts.</span>`;
+    return;
+  }
+  const takes = takesRead();
+  const { tl } = arrLayoutTimeline();
+  const e = tl.find(x => x.si === arr.sel);
+  const from = e ? e.startG / STEPS + 1 : null, to = e ? (e.startG + e.len) / STEPS : null;
+  const n = (sec.auto || []).length;
+  box.innerHTML = `
+    <span class="arr-dot" style="--c:${takeColor(sec.takeId)}"></span>
+    <span class="arr-ilbl">Section ${arr.sel + 1}${from ? ` · bars ${from}–${to}` : ''}</span>
+    <input id="arr-label" list="arr-labels" maxlength="24" placeholder="Name (Verse…)" value="${escHtml(sec.label || '')}">
+    <datalist id="arr-labels">${SECTION_LABELS.map(l => `<option value="${l}">`).join('')}</datalist>
+    <select id="arr-take" title="Swap the take this section plays">${takes.map(t =>
+      `<option value="${t.id}"${t.id === sec.takeId ? ' selected' : ''}>${escHtml(t.name)}${t.recipe ? '' : ' (no pads)'}</option>`).join('')}
+      ${takes.find(t => t.id === sec.takeId) ? '' : '<option value="" selected>— deleted take —</option>'}</select>
+    <span class="arr-rep"><button class="bank-icon" data-act="rep-" title="One pass less">−</button><span>×${sec.repeats}</span><button class="bank-icon" data-act="rep+" title="One pass more">+</button></span>
+    <button class="bank-icon" data-act="left" title="Move left (Alt+←)">←</button>
+    <button class="bank-icon" data-act="right" title="Move right (Alt+→)">→</button>
+    <button class="bank-btn arr-small" data-act="dup" title="Duplicate right after (⌘D)">Duplicate</button>
+    <button class="bank-btn arr-small" data-act="copy" title="Copy (⌘C)">Copy</button>
+    <button class="bank-btn arr-small" data-act="paste" title="Paste after this one (⌘V)"${arr.clip ? '' : ' disabled'}>Paste</button>
+    <button class="bank-btn arr-small" data-act="clear" title="Erase this section's recorded pad moves"${n ? '' : ' disabled'}>⌫ ${n} pad move${n === 1 ? '' : 's'}</button>
+    <button class="bank-icon" data-act="play" title="Play from this section">▶</button>
+    <button class="bank-icon danger" data-act="del" title="Remove (Delete)">✕</button>`;
+}
+
+// ---- edits ----
+function arrEdit(fn, opts = {}) {
   const song = songCurrent();
   if (!song) return;
-  if (state.playing) stopPlaying();
+  if (state.playing && !opts.live) stopPlaying();
   fn(song);
   songPut(song);
-  arrRender();
+  if (arr.sel != null && arr.sel >= song.sections.length) arr.sel = song.sections.length ? song.sections.length - 1 : null;
+  arrRenderTimeline();
+  arrRenderInspector();
+}
+const cloneSection = s => ({ ...JSON.parse(JSON.stringify(s)), id: uid('x') });
+function arrInsertTake(takeId, at) {
+  arrEdit(song => {
+    const i = at != null ? at : (arr.sel != null ? arr.sel + 1 : song.sections.length);
+    song.sections.splice(i, 0, { id: uid('x'), takeId, repeats: 1, auto: [], label: '' });
+    arr.sel = i;
+  });
+}
+function arrAction(act) {
+  const song = songCurrent();
+  if (!song || arr.sel == null) return;
+  const si = arr.sel;
+  if (act === 'play') {
+    const { tl } = arrLayoutTimeline();
+    const e = tl.find(x => x.si === si);
+    if (!e) return;
+    if (state.playing) stopPlaying();
+    arr.startG = e.startG;
+    arrRenderTimeline();
+    startPlaying();
+    return;
+  }
+  if (act === 'copy') { arr.clip = cloneSection(song.sections[si]); arrRenderInspector(); setPatternStatus('Section copied'); setTimeout(() => setPatternStatus(''), 1200); return; }
+  arrEdit(s => {
+    const secs = s.sections, sec = secs[si];
+    if (act === 'rep+') sec.repeats = Math.min(16, sec.repeats + 1);
+    if (act === 'rep-') { sec.repeats = Math.max(1, sec.repeats - 1); sec.auto = (sec.auto || []).filter(x => x.rep < sec.repeats); }
+    if (act === 'left' && si > 0) { [secs[si - 1], secs[si]] = [secs[si], secs[si - 1]]; arr.sel = si - 1; }
+    if (act === 'right' && si < secs.length - 1) { [secs[si + 1], secs[si]] = [secs[si], secs[si + 1]]; arr.sel = si + 1; }
+    if (act === 'dup') { secs.splice(si + 1, 0, cloneSection(sec)); arr.sel = si + 1; }
+    if (act === 'paste' && arr.clip) { secs.splice(si + 1, 0, cloneSection(arr.clip)); arr.sel = si + 1; }
+    if (act === 'clear' && (sec.auto || []).length && window.confirm('Erase the pad moves recorded on this section?')) sec.auto = [];
+    if (act === 'del') { secs.splice(si, 1); arr.sel = secs.length ? Math.min(si, secs.length - 1) : null; }
+  });
+}
+
+// ---- cursor ----
+function arrUpdateClock(g) {
+  const el = document.getElementById('arr-pos');
+  if (!el) return;
+  const bar = Math.floor(g / STEPS) + 1, beat = Math.floor((g % STEPS) / 4) + 1;
+  const secs = g * stepDuration();
+  const pos = arrPosAt(Math.min(g, Math.max(0, arr.total - 1)));
+  const where = pos && arr.playing ? ` · ${pos.entry.section.label || pos.entry.take.name} ${pos.rep + 1}/${pos.entry.section.repeats}` : '';
+  el.textContent = `bar ${bar} · beat ${beat} · ${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}${where}`;
+}
+function arrCursorLoop() {
+  if (!arr.playing) { arr.raf = null; return; }
+  const latency = Math.min(ctx.outputLatency || ctx.baseLatency || 0, 0.5);
+  const now = ctx.currentTime - latency - (state.avOffsetMs || 0) / 1000;
+  while (arr.vq.length > 1 && arr.vq[1].time <= now) arr.vq.shift();
+  const cur = arr.vq[0];
+  if (cur && cur.time <= now) {
+    const g = cur.g + Math.min(1, (now - cur.time) / stepDuration());
+    const x = g / STEPS * arr.px;
+    const c = document.getElementById('arr-cursor');
+    if (c) c.style.left = x + 'px';
+    const wrap = document.getElementById('arr-timeline');
+    if (wrap && (x > wrap.scrollLeft + wrap.clientWidth - 60 || x < wrap.scrollLeft)) wrap.scrollLeft = Math.max(0, x - 80);
+    const bar = Math.floor(cur.g / STEPS);
+    if (bar !== arr.shownBar) {
+      arr.shownBar = bar;
+      arrUpdateClock(cur.g);
+      const pos = arrPosAt(cur.g);
+      document.querySelectorAll('.arr-block').forEach(b => b.classList.toggle('playing', !!pos && +b.dataset.si === pos.entry.si));
+    }
+  }
+  arr.raf = requestAnimationFrame(arrCursorLoop);
+}
+function arrCursorStart() { arr.vq = []; arr.shownBar = -1; if (!arr.raf) arr.raf = requestAnimationFrame(arrCursorLoop); }
+function arrCursorStop() {
+  arr.vq = [];
+  document.querySelectorAll('.arr-block.playing').forEach(b => b.classList.remove('playing'));
+  const c = document.getElementById('arr-cursor');
+  if (c) c.style.left = (arr.startG / STEPS * arr.px) + 'px';
+  arrUpdateClock(arr.startG);
 }
 
 function bindArranger() {
@@ -4122,7 +4295,7 @@ function bindArranger() {
   const sel = document.getElementById('arr-song');
   sel.addEventListener('change', () => {
     if (state.playing) stopPlaying();
-    arr.songId = sel.value || null;
+    arr.songId = sel.value || null; arr.sel = null; arr.startG = 0;
     const song = songCurrent();
     if (song && song.bpm) bankDrive('bpm-slider', song.bpm);
     if (song && song.kit) {
@@ -4130,17 +4303,20 @@ function bindArranger() {
       if (kb && kb.style.display !== 'none') kb.click();
     }
     arrRender();
+    sel.blur();
   });
-  document.getElementById('arr-new').addEventListener('click', () => {
+  document.getElementById('arr-new').addEventListener('click', e => {
+    e.currentTarget.blur();
     const name = window.prompt('Song name', `Song ${songsRead().length + 1}`);
     if (!name) return;
     const song = { id: uid('s'), name: name.trim().slice(0, 40), created: Date.now(),
                    bpm: state.bpm, kit: state.kit, sections: [] };
     songPut(song);
-    arr.songId = song.id;
+    arr.songId = song.id; arr.sel = null; arr.startG = 0;
     arrRender();
   });
-  document.getElementById('arr-rename').addEventListener('click', () => {
+  document.getElementById('arr-rename').addEventListener('click', e => {
+    e.currentTarget.blur();
     const song = songCurrent();
     if (!song) return;
     const name = window.prompt('Rename song', song.name);
@@ -4149,64 +4325,134 @@ function bindArranger() {
     songPut(song);
     arrRender();
   });
-  document.getElementById('arr-del').addEventListener('click', () => {
+  document.getElementById('arr-del').addEventListener('click', e => {
+    e.currentTarget.blur();
     const song = songCurrent();
     if (!song || !window.confirm(`Delete the song "${song.name}"? The takes it uses are kept.`)) return;
     if (state.playing) stopPlaying();
     songsWrite(songsRead().filter(s => s.id !== song.id));
-    arr.songId = null;
+    arr.songId = null; arr.sel = null;
     arrRender();
   });
   const recBtn = document.getElementById('arr-rec');
-  recBtn.addEventListener('click', () => {
-    arr.rec = !arr.rec;
-    recBtn.classList.toggle('recording', arr.rec);
-    recBtn.blur();
-  });
+  recBtn.addEventListener('click', () => { arr.rec = !arr.rec; recBtn.classList.toggle('recording', arr.rec); recBtn.blur(); });
   document.getElementById('arr-midi').addEventListener('click', e => { e.currentTarget.blur(); arrExportMidi(); });
-  document.getElementById('arr-add').addEventListener('click', () => arrEdit(song => {
-    const takes = takesRead();
-    const last = song.sections[song.sections.length - 1];
-    song.sections.push({ id: uid('x'), takeId: last ? last.takeId : (takes[0] ? takes[0].id : ''),
-                         repeats: 1, auto: [] });
-  }));
-  const box = document.getElementById('arr-sections');
-  box.addEventListener('change', e => {
-    const card = e.target.closest('.arr-sec');
-    if (!card || e.target.dataset.act !== 'take') return;
-    const si = +card.dataset.si;
-    arrEdit(song => {
-      const sec = song.sections[si];
-      if (sec.takeId !== e.target.value && (sec.auto || []).length &&
-          !window.confirm('This section has pad moves recorded on the old take. Keep them on the new one?')) sec.auto = [];
-      sec.takeId = e.target.value;
-    });
+
+  // Palette: click adds after the selection, drag drops where you want
+  const pal = document.getElementById('arr-palette');
+  pal.addEventListener('click', e => {
+    const chip = e.target.closest('.arr-chip');
+    if (!chip) return;
+    if (!songCurrent()) { setPatternStatus('Create a song first'); return; }
+    arrInsertTake(chip.dataset.take);
   });
-  box.addEventListener('click', e => {
-    const btn = e.target.closest('button[data-act]');
-    const card = e.target.closest('.arr-sec');
-    if (!btn || !card) return;
-    btn.blur();
-    const si = +card.dataset.si, act = btn.dataset.act;
-    if (act === 'play') {
-      if (state.playing) stopPlaying();
-      arr.startSi = si;
-      startPlaying();
+  pal.addEventListener('dragstart', e => {
+    const chip = e.target.closest('.arr-chip');
+    if (chip) e.dataTransfer.setData('text/plain', 'take:' + chip.dataset.take);
+  });
+
+  // Timeline: select, set start, reorder by drag
+  const wrap = document.getElementById('arr-timeline');
+  wrap.addEventListener('click', e => {
+    if (e.target.closest('.arr-ruler')) {
+      const r = wrap.querySelector('.arr-canvas').getBoundingClientRect();
+      const bar = Math.max(0, Math.floor((e.clientX - r.left) / arr.px));
+      const { total } = arrLayoutTimeline();
+      arr.startG = Math.min(bar * STEPS, Math.max(0, total - STEPS));
+      if (state.playing) { stopPlaying(); }
+      arrRenderTimeline();
       return;
     }
-    arrEdit(song => {
-      const secs = song.sections, sec = secs[si];
-      if (act === 'rep+') sec.repeats = Math.min(16, sec.repeats + 1);
-      if (act === 'rep-') {
-        sec.repeats = Math.max(1, sec.repeats - 1);
-        sec.auto = (sec.auto || []).filter(x => x.rep < sec.repeats);
-      }
-      if (act === 'clear' && (sec.auto || []).length && window.confirm('Erase the pad moves of this section?')) sec.auto = [];
-      if (act === 'up' && si > 0) [secs[si - 1], secs[si]] = [secs[si], secs[si - 1]];
-      if (act === 'down' && si < secs.length - 1) [secs[si + 1], secs[si]] = [secs[si], secs[si + 1]];
-      if (act === 'del') secs.splice(si, 1);
-    });
+    const block = e.target.closest('.arr-block');
+    arr.sel = block ? +block.dataset.si : null;
+    wrap.querySelectorAll('.arr-block').forEach(b => b.classList.toggle('sel', +b.dataset.si === arr.sel));
+    arrRenderInspector();
   });
+  wrap.addEventListener('dblclick', e => {
+    const block = e.target.closest('.arr-block');
+    if (!block) return;
+    arr.sel = +block.dataset.si;
+    arrAction('play');
+  });
+  wrap.addEventListener('dragstart', e => {
+    const block = e.target.closest('.arr-block');
+    if (block) e.dataTransfer.setData('text/plain', 'sec:' + block.dataset.si);
+  });
+  wrap.addEventListener('dragover', e => { if (e.target.closest('.arr-lane, .arr-empty, .arr-canvas')) e.preventDefault(); });
+  wrap.addEventListener('drop', e => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData('text/plain') || '';
+    const song = songCurrent();
+    if (!song) return;
+    // Index to insert at, from where the drop lands among the blocks
+    let at = song.sections.length;
+    const blocks = [...wrap.querySelectorAll('.arr-block')];
+    for (const b of blocks) {
+      const r = b.getBoundingClientRect();
+      if (e.clientX < r.left + r.width / 2) { at = +b.dataset.si; break; }
+    }
+    if (data.startsWith('take:')) { arrInsertTake(data.slice(5), at); return; }
+    if (data.startsWith('sec:')) {
+      const from = +data.slice(4);
+      arrEdit(s => {
+        const [moved] = s.sections.splice(from, 1);
+        const to = at > from ? at - 1 : at;
+        s.sections.splice(to, 0, moved);
+        arr.sel = to;
+      });
+    }
+  });
+
+  // Edit bar
+  const insp = document.getElementById('arr-inspector');
+  insp.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    btn.blur();
+    arrAction(btn.dataset.act);
+  });
+  insp.addEventListener('change', e => {
+    if (e.target.id === 'arr-take') {
+      const id = e.target.value;
+      arrEdit(song => {
+        const sec = song.sections[arr.sel];
+        if (sec.takeId !== id && (sec.auto || []).length &&
+            !window.confirm('This section has pad moves recorded on the old take. Keep them on the new one?')) sec.auto = [];
+        sec.takeId = id;
+      });
+      e.target.blur();
+    }
+    if (e.target.id === 'arr-label') {
+      const label = e.target.value.trim().slice(0, 24);
+      arrEdit(song => { song.sections[arr.sel].label = label; }, { live: true });
+    }
+  });
+  insp.addEventListener('keydown', e => { if (e.target.id === 'arr-label' && e.key === 'Enter') e.target.blur(); });
+
+  // Keyboard: edit shortcuts, only in the song view and outside text fields
+  document.addEventListener('keydown', e => {
+    if (arr.view !== 'song') return;
+    const t = e.target, tag = t && t.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const k = e.key.toLowerCase();
+    if (mod && k === 'c') { e.preventDefault(); arrAction('copy'); return; }
+    if (mod && k === 'v') { e.preventDefault(); if (arr.sel == null) { const s = songCurrent(); if (s && arr.clip) arrEdit(x => { x.sections.push(cloneSection(arr.clip)); arr.sel = x.sections.length - 1; }); } else arrAction('paste'); return; }
+    if (mod && k === 'd') { e.preventDefault(); arrAction('dup'); return; }
+    if (mod) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') { if (arr.sel != null) { e.preventDefault(); arrAction('del'); } return; }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const song = songCurrent();
+      if (!song || !song.sections.length) return;
+      e.preventDefault();
+      if (e.altKey) { arrAction(e.key === 'ArrowLeft' ? 'left' : 'right'); return; }
+      const n = song.sections.length;
+      arr.sel = arr.sel == null ? 0 : Math.max(0, Math.min(n - 1, arr.sel + (e.key === 'ArrowLeft' ? -1 : 1)));
+      document.querySelectorAll('.arr-block').forEach(b => b.classList.toggle('sel', +b.dataset.si === arr.sel));
+      arrRenderInspector();
+    }
+  });
+  window.addEventListener('resize', () => { if (arr.view === 'song') arrRenderTimeline(); });
 }
 
 // ============================================================
@@ -7449,6 +7695,9 @@ function bindControls() {
     if (window._calibActive) { e.preventDefault(); calibTap(); return; }
     // Don't double-fire when a focused control already answers to this key
     if (ownsKeys(e.target)) return;
+    // ⌘/Ctrl shortcuts (copy, paste, duplicate in the song view, the
+    // browser's own) must not also fire the pad on that letter
+    if (e.metaKey || e.ctrlKey) return;
     const k = e.key.toLowerCase();
     if (k === 'enter' || k === ' ') {
       e.preventDefault();
