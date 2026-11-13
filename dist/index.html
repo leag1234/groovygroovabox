@@ -1597,6 +1597,8 @@
           font-size: 9px; color: #fff; background: rgba(255,48,48,0.85); border-radius: 2px; display: none; }
   .at-clip:hover .at-x, .at-clip.sel .at-x { display: block; }
   .danger-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
+
+  .at-livecv { position: absolute; left: 0; top: 1px; width: 100%; height: 40px; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -4510,6 +4512,7 @@ function arrUpdateClock(g) {
 }
 function arrCursorLoop() {
   if (!arr.playing) { arr.raf = null; return; }
+  if (atIn.rec) atDrawLive();
   const latency = Math.min(ctx.outputLatency || ctx.baseLatency || 0, 0.5);
   const now = ctx.currentTime - latency - (state.avOffsetMs || 0) / 1000;
   while (arr.vq.length > 1 && arr.vq[1].time <= now) arr.vq.shift();
@@ -5084,6 +5087,7 @@ async function atOpenInput() {
       const t = (ev.playbackTime !== undefined) ? ev.playbackTime : audio().currentTime;
       if (atIn.rec.t0 == null) atIn.rec.t0 = t;
       atIn.rec.chunks.push([new Float32Array(chs[0]), new Float32Array(chs[1])]);
+      atRecPeaks(atIn.rec, chs, ib.sampleRate);
     }
   };
   arrPopulateInputs();
@@ -5106,7 +5110,61 @@ async function arrPopulateInputs() {
 
 // Recording a take of audio: starts with the song, stops with it.
 function atRecordBegin() {
-  atIn.rec = { t0: null, chunks: [], songT0: null, startG: arr.startG };
+  atIn.rec = { t0: null, chunks: [], songT0: null, startG: arr.startG,
+               peaks: [[], []], acc: [0, 0], n: 0 };
+}
+// Peaks of what is being captured, PEAKS_PER_S per second and per input
+// channel, so the armed lanes can draw the take while it is recorded.
+function atRecPeaks(rec, chs, sr) {
+  const hop = Math.max(1, Math.round(sr / PEAKS_PER_S));
+  const d0 = chs[0], d1 = chs[1];
+  for (let i = 0; i < d0.length; i++) {
+    const a0 = Math.abs(d0[i]), a1 = Math.abs(d1[i]);
+    if (a0 > rec.acc[0]) rec.acc[0] = a0;
+    if (a1 > rec.acc[1]) rec.acc[1] = a1;
+    if (++rec.n >= hop) {
+      rec.peaks[0].push(rec.acc[0]); rec.peaks[1].push(rec.acc[1]);
+      rec.acc[0] = rec.acc[1] = 0; rec.n = 0;
+    }
+  }
+}
+// Draw the take being recorded on each armed lane, from the song step the
+// recording started on up to now. Incremental: only the new peaks are drawn
+// each frame; if the timeline was re-rendered, the canvas is rebuilt.
+function atDrawLive() {
+  const rec = atIn.rec;
+  const song = songCurrent();
+  if (!rec || rec.songT0 == null || rec.t0 == null || !song) return;
+  const a = songAudio(song);
+  const barS = STEPS * stepDuration();
+  const startS = rec.startG * stepDuration();
+  const rel0 = rec.t0 - recLatencyS() - rec.songT0;
+  a.tracks.forEach((t, tr) => {
+    if (!t.arm) return;
+    const lane = document.querySelector(`.at-lane[data-tr="${tr}"]`);
+    if (!lane) return;
+    let cv = lane.querySelector('canvas.at-livecv');
+    if (!cv) {
+      cv = document.createElement('canvas');
+      cv.className = 'at-livecv';
+      cv.width = Math.max(1, Math.round(lane.clientWidth)); cv.height = 40;
+      cv._drawn = 0;
+      lane.appendChild(cv);
+    }
+    const g = cv.getContext('2d');
+    const peaks = rec.peaks[Math.min(t.ch || 0, 1)];
+    for (let k = cv._drawn; k < peaks.length; k++) {
+      const sec = rel0 + k / PEAKS_PER_S;
+      if (sec < 0) continue;                       // count-in, before the song
+      const x = Math.floor((startS + sec) / barS * arr.px);
+      g.fillStyle = 'rgba(255, 48, 48, 0.16)';     // the recorded region
+      g.fillRect(x, 0, 1, 40);
+      const y = Math.max(1, Math.min(1, peaks[k] * 1.2) * 19);
+      g.fillStyle = 'rgba(255, 90, 90, 0.95)';
+      g.fillRect(x, 20 - y, 1, y * 2);
+    }
+    cv._drawn = peaks.length;
+  });
 }
 async function atRecordEnd() {
   const rec = atIn.rec;
