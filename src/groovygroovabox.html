@@ -4479,10 +4479,13 @@ function audio() {
 // then take up to ~1s to reopen — swallowing the first beats after Play.
 // A permanently running signal keeps the pipeline open. Signal choice matters:
 // broadband noise is the MOST audible signal per unit of energy (a hiss),
-// while an infrasonic sine (27 Hz at -42 dB) carries enough digital-domain
-// energy to defeat any auto-standby gate yet is inaudible: soundbars do not
-// reproduce below ~60-80 Hz, and 27 Hz at this level sits far below the
-// human hearing threshold even on systems with a subwoofer.
+// while an infrasonic sine is not: soundbars do not reproduce below ~60-80 Hz.
+// Headphones do, though. At -42 dBFS it was heard as a constant low rumble on
+// headphones (Gael, Safari, 2026-11-13): good cans reach ~110 dB SPL at full
+// scale, so -42 dBFS put 27 Hz near 68 dB SPL, above the ~60 dB SPL hearing
+// threshold at that frequency. -66 dBFS keeps it ~15 dB under that threshold
+// at full volume, and is still 30 dB above 16-bit digital silence, which is
+// what auto-standby gates look for.
 let keepAliveNode = null;
 function startAudioKeepAlive() {
   if (keepAliveNode) return;
@@ -4492,7 +4495,7 @@ function startAudioKeepAlive() {
     osc.type = 'sine';
     osc.frequency.value = 27;
     const g = c.createGain();
-    g.gain.value = 0.008; // ≈ -42 dBFS
+    g.gain.value = 0.0005; // ≈ -66 dBFS (was -42: audible on headphones)
     osc.connect(g);
     g.connect(c.destination);
     osc.start();

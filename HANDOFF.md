@@ -323,6 +323,13 @@ every hit. Without it no song could replay the same way twice.
 Timing always did: MIDI is recorded at the scheduled time, swing, feel,
 drift and flams included.
 
+**The keep-alive tone is at −66 dBFS**, not −42 (`startAudioKeepAlive`). The
+27 Hz sine started at the first Play keeps HDMI / soundbar / virtual-driver
+outputs from powering down between plays. At −42 dBFS Gaël heard it on
+headphones as a constant low rumble that only stopped when the tab closed.
+If first beats start getting swallowed again on a display or soundbar
+output, this level is the knob — raise it a little, do not remove it.
+
 **Space is play/stop**, with Enter still working. `ownsKeys` skips the global
 handler when a focused control owns the key — selects, text inputs, checkboxes,
 contenteditable. Range sliders and buttons are deliberately *not* skipped: Space
