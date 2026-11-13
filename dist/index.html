@@ -1754,6 +1754,9 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
       <button class="bank-btn arr-small" id="arr-midi" title="Download the whole song as a MIDI file">♪ MIDI</button>
       <button class="bank-btn arr-small" id="arr-export" title="Download a ZIP: drums.wav, one WAV per audio track, mix.wav and drums.mid, all from bar 1, ready for a DAW">⤓ Export audio</button>
       <span class="arr-sep"></span>
+      <select id="arr-countin" title="Clicks before the song starts, to come in on time">
+        <option value="0">No count-in</option><option value="1">Count-in 1 bar</option><option value="2">Count-in 2 bars</option>
+      </select>
       <button class="bank-btn arr-small arr-recaudio" id="arr-recaudio" title="Record the armed audio tracks while the song plays from the start marker">● Rec audio</button>
       <select id="at-input" title="Audio input"><option value="">Input…</option></select>
       <label class="arr-lat" title="Recording latency: how late a recorded sound arrives. Measured by the A/V auto-calibration (Setup tab); adjust by hand if takes sound early or late.">Lat <input type="number" id="at-lat" min="0" max="2000" step="1"> ms</label>
@@ -3840,7 +3843,7 @@ const SONGS_KEY = 'groovygroova:songs';
 let midiCollect = null;   // set while a song is exported: play() hands hits here
 
 const arr = {
-  view: 'live', playing: false, simulating: false, rec: false,
+  view: 'live', playing: false, simulating: false, rec: true,   // pad moves are recorded unless disarmed
   songId: null,
   timeline: [], total: 0, g: 0, ended: false, pos: null,
   over: new Map(), holdOver: new Set(), repKey: null, frame: null, lastFrame: null,
@@ -3925,6 +3928,7 @@ function arrOnStop() {
   state.alterations = new Set(); state.holding = new Set();
   if (!arr.simulating) {
     atStopPlayback();
+    setDrumBus(ctx, 1);          // the live view never inherits a song's solo
     if (atIn.rec) atRecordEnd();
     arrRecordUI();
     arrSyncPads();
@@ -4145,6 +4149,7 @@ function arrSetView(view) {
   } else {
     arr.view = 'live';
     atCloseInput();
+    setDrumBus(ctx, 1);
     if (arr.liveSnap) engineRestore(arr.liveSnap);
     document.querySelectorAll('.step').forEach(el => renderStep(el, el.dataset.track, parseInt(el.dataset.step)));
     TRACKS.forEach(t => updateArtIndicators(t.id));
@@ -4204,6 +4209,10 @@ const ARR_MIN_PX_PER_BAR = 18;
 const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 arr.sel = null;        // selected section index
+arr.countInBars = (() => {   // song view: bars of clicks before the song starts
+  try { const v = parseInt(localStorage.getItem('groovygroova:song-countin')); return isNaN(v) ? 2 : v; }
+  catch (e) { return 2; }
+})();
 arr.clip = null;       // copied section
 arr.startG = 0;        // where Play starts, in song steps (always a bar line)
 arr.px = 24;           // pixels per bar, set by the layout
@@ -4558,6 +4567,7 @@ function bindArranger() {
     arrRender();
   });
   const recBtn = document.getElementById('arr-rec');
+  recBtn.classList.toggle('recording', arr.rec);
   recBtn.addEventListener('click', () => { arr.rec = !arr.rec; recBtn.classList.toggle('recording', arr.rec); recBtn.blur(); });
   document.getElementById('arr-midi').addEventListener('click', e => { e.currentTarget.blur(); arrExportMidi(); });
 
@@ -4804,6 +4814,13 @@ function bindArranger() {
     if (!isNaN(v)) setRecLatencyMs(Math.max(0, Math.min(2000, v)));
     e.target.blur();
   });
+  const ci = document.getElementById('arr-countin');
+  ci.value = String(arr.countInBars);
+  ci.addEventListener('change', () => {
+    arr.countInBars = parseInt(ci.value) || 0;
+    try { localStorage.setItem('groovygroova:song-countin', String(arr.countInBars)); } catch (e) { /* ignore */ }
+    ci.blur();
+  });
   document.getElementById('arr-export').addEventListener('click', e => { e.currentTarget.blur(); arrExportAll(); });
 }
 
@@ -4957,9 +4974,10 @@ function atGraph(c) {
   for (let i = 0; i < AT_TRACKS; i++) {
     const gain = c.createGain();
     const pan = c.createStereoPanner ? c.createStereoPanner() : null;
-    if (pan) { gain.connect(pan); pan.connect(masterGain()); } else gain.connect(masterGain());
+    if (pan) { gain.connect(pan); pan.connect(masterOut()); } else gain.connect(masterOut());
     nodes.push({ gain, pan });
   }
+  nodes.ctx = c;
   return nodes;
 }
 function atApplyMix(song, nodes) {
@@ -4968,6 +4986,17 @@ function atApplyMix(song, nodes) {
     n.gain.gain.value = trackGainValue(a, i);
     if (n.pan) n.pan.pan.value = a.tracks[i].pan;
   });
+  // Soloing an audio track silences the drums too, like any console
+  // The drum bus is created by the first drum hit; during a count-in there
+  // has been none yet, so make sure it exists or the solo would be lost.
+  const c = nodes.ctx || ctx;
+  if (!c._drumBus) {
+    const prev = ctx, vb = voiceBus;
+    ctx = c; voiceBus = null;
+    masterGain();
+    ctx = prev; voiceBus = vb;
+  }
+  setDrumBus(c, a.tracks.some(t => t.solo) ? 0 : 1);
 }
 // Schedule every clip of the song from song second `fromS`, the song's first
 // step sounding at context time `t0`.
@@ -4986,7 +5015,7 @@ function atStartPlayback(t0) {
   const song = songCurrent();
   if (!song) return;
   const c = audio();
-  if (!atNodes || atNodes.ctx !== c) { atNodes = atGraph(c); atNodes.ctx = c; }
+  if (!atNodes || atNodes.ctx !== c) atNodes = atGraph(c);
   atApplyMix(song, atNodes);
   atStopPlayback();
   atSchedule(song, c, atNodes, t0, arr.startG * stepDuration(), atSources);
@@ -5966,8 +5995,10 @@ function unlockIOSAudio() {
 // can be choked through a single gain. See hatChokeVoice().
 let voiceBus = null;
 
-const masterGain = () => {
-  if (voiceBus) return voiceBus;
+// Every drum voice goes to the drum bus, which feeds the master. The audio
+// tracks, the metronome and the count-in go to the master directly, so a
+// soloed audio track can silence the drums while the click keeps going.
+const masterOut = () => {
   if (!ctx._master) {
     const g = ctx.createGain();
     g.gain.value = state.master;
@@ -5976,6 +6007,18 @@ const masterGain = () => {
   }
   return ctx._master;
 };
+const masterGain = () => {
+  if (voiceBus) return voiceBus;
+  if (!ctx._drumBus) {
+    const b = ctx.createGain();
+    b.connect(masterOut());
+    ctx._drumBus = b;
+  }
+  return ctx._drumBus;
+};
+function setDrumBus(c, v) {
+  if (c && c._drumBus) c._drumBus.gain.value = v;
+}
 
 // ---- Synthesis primitives ----
 function envGain(time, attack, decay, peak = 1) {
@@ -7758,7 +7801,7 @@ function playClick(time, accent=false) {
   g.gain.setValueAtTime(0, time);
   g.gain.linearRampToValueAtTime(accent ? 0.6 : 0.35, time + 0.001);
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-  o.connect(g).connect(masterGain());
+  o.connect(g).connect(masterOut());   // not the drum bus: a solo must not mute the click
   o.start(time);
   o.stop(time + 0.08);
 }
@@ -7819,22 +7862,26 @@ async function startPlaying() {
   const grooveStartDelay = 0.15;
   const beatDuration = 60 / state.bpm;
 
-  if (state.countIn) {
-    // Schedule 4 click beats before the groove starts
+  // Live view: the Setup tab's count-in, one bar counted down 4-3-2-1.
+  // Song view: its own setting (1 or 2 bars, default 2), counted 1-2-3-4 with
+  // the one accented, so a player can come in on time.
+  const songCount = arr.view === 'song';
+  const countBeats = songCount ? arr.countInBars * 4 : (state.countIn ? 4 : 0);
+  if (countBeats) {
     const countInStart = ctx.currentTime + grooveStartDelay;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < countBeats; i++) {
       const t = countInStart + i * beatDuration;
-      playClick(t, true);
-      // Visual countdown
-      const idx = 4 - i;
+      playClick(t, songCount ? i % 4 === 0 : true);
+      // Visual count
+      const idx = songCount ? (i % 4) + 1 : countBeats - i;
       const delayMs = (t - ctx.currentTime) * 1000;
-      setTimeout(() => showCountdown(idx), Math.max(0, delayMs));
+      setTimeout(() => { if (state.playing) showCountdown(idx); }, Math.max(0, delayMs));
     }
-    // Hide overlay after the 4th beat
-    setTimeout(() => hideCountdown(), (grooveStartDelay + 4 * beatDuration) * 1000);
+    // Hide overlay after the last beat
+    setTimeout(() => hideCountdown(), (grooveStartDelay + countBeats * beatDuration) * 1000);
 
-    // Groove starts after the 4 count-in beats
-    nextStepTime = countInStart + 4 * beatDuration;
+    // Groove starts after the count
+    nextStepTime = countInStart + countBeats * beatDuration;
   } else {
     nextStepTime = ctx.currentTime + grooveStartDelay;
   }
@@ -7860,14 +7907,14 @@ async function startPlaying() {
   schedulerId = setInterval(scheduler, LOOKAHEAD_MS);
   document.getElementById('play-btn').textContent = '■ Stop';
   document.getElementById('play-btn').classList.add('active');
-  document.getElementById('status-text').textContent = state.countIn ? 'Count-in...' : 'Playing';
+  document.getElementById('status-text').textContent = countBeats ? 'Count-in...' : 'Playing';
   document.getElementById('clock-led').classList.add('on');
 
   // Once count-in ends, update status text
-  if (state.countIn) {
+  if (countBeats) {
     setTimeout(() => {
       if (state.playing) document.getElementById('status-text').textContent = 'Playing';
-    }, (grooveStartDelay + 4 * beatDuration) * 1000);
+    }, (grooveStartDelay + countBeats * beatDuration) * 1000);
   }
 }
 

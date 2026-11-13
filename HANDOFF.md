@@ -115,7 +115,7 @@ articulation. `GM_MAP` maps (track, articulation) to General MIDI.
 
 **Persistence**, all in `localStorage` under `groovygroova:`:
 `bank` (setups), `takes`, `av-offset`, `display-comp`, `feel-mode`,
-`feel-intensity`, `humanize`, `chaos`, `midi-mappings`, `songs`, `rec-latency`;
+`feel-intensity`, `humanize`, `chaos`, `midi-mappings`, `songs`, `rec-latency`, `song-countin`;
 audio clips in IndexedDB. (`humanize` and
 `chaos` are purged at load, not restored. `state.humanize` is now the
 **Dynamics** slider; the name was kept so saved setups recall it.)
@@ -345,6 +345,15 @@ into 0–3 / 4–end. Export renders the drums offline through the real engine
 pre-roll cut back off — without it a hit pushed early by a Feel preset gave
 a negative AudioParam time and aborted the render. ZIP written by hand
 (stored, CRC32). No software monitoring, on purpose (latency).
+
+**Drum bus.** `masterGain()` now returns `ctx._drumBus`, which feeds
+`masterOut()` (the old master). Every drum voice uses `masterGain()`; audio
+tracks, the metronome and the count-in use `masterOut()`, so soloing an
+audio track (`atApplyMix` sets the bus to 0) silences the drums but not the
+click. The bus is reset to 1 on stop and in the live view. In the song view
+the count-in is its own setting (`arr.countInBars`, 0–2, default 2, stored
+as `song-countin`), counted 1-2-3-4 with the one accented; `arr.rec` (pad
+moves recorded) is on by default — both at Gaël's request.
 
 **The Ghost pad is locked** (it was known gap 1): `rollChaosPlan` also rolls
 `ghostMasks`, one per bar, replayed with the plan, instead of a 60 % coin on
