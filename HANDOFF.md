@@ -115,7 +115,7 @@ articulation. `GM_MAP` maps (track, articulation) to General MIDI.
 
 **Persistence**, all in `localStorage` under `groovygroova:`:
 `bank` (setups), `takes`, `av-offset`, `display-comp`, `feel-mode`,
-`feel-intensity`, `humanize`, `chaos`, `midi-mappings`. (`humanize` and
+`feel-intensity`, `humanize`, `chaos`, `midi-mappings`, `songs`. (`humanize` and
 `chaos` are purged at load, not restored. `state.humanize` is now the
 **Dynamics** slider; the name was kept so saved setups recall it.)
 
@@ -293,6 +293,36 @@ Measured with an offline render: the Salamander open hat (3 s) left −36 dB of
 ring 0.5–1 s after a closed hat; it now leaves nothing above the closed hat
 alone.
 
+**Song view: a take is a recipe, replayed through the engine.** Gaël wants
+every live pad usable on recorded material, so frozen hits were not enough.
+Since `TAKE_VERSION = 2`, `takeRecordFrame` (called by the scheduler after
+each step while recording) stores what moved: grid, swing, feel, Dynamics,
+Chaos, pads, held drop, running fill, the bar's chaos figure and break, the
+Broken phase (`bp`) and the Ghost pad's notes (`gm`); wildcards drawn go in
+`recipe.wcs`. The hits are still stored (`events`) for the take's MIDI and as
+the fallback for old takes. Playing a song (`arr`, `arrBeforeStep` at the top
+of the scheduler loop) sets the engine from the take's frame, applies the
+section's pad automation (`section.auto`: `{type, id, on, rep, k}`), and lets
+`scheduleStep` generate as usual; `activeChaosFigure`, `activeChaosPauseType`
+and `activeGhostMask` return the recorded values while `arr.playing`.
+Verified with a virtual clock: Funk + Chaos 70 + Broken + Syncope + Relaunch,
+Rock + Chaos 100 + Ghost, R&B + Broken + Ghost — the song replays the take
+hit for hit on every pass. Pad moves live inside one pass of a section
+(`arr.over` is cleared at each pass). Song MIDI export runs the song headless
+(`midiCollect` in `play()`). **Takes are recorded from the first step after
+arming if that step is a bar line** — the take covers the bar that starts
+then, which caught a test of mine out.
+
+**The Ghost pad is locked** (it was known gap 1): `rollChaosPlan` also rolls
+`ghostMasks`, one per bar, replayed with the plan, instead of a 60 % coin on
+every hit. Without it no song could replay the same way twice.
+
+**MIDI velocity now carries everything the ear gets** (`midiOpts.midiMul` in
+`play()`): written `vel` (intro/outro crescendos, the ending crash), the
++3 dB gesture accent and the per-hit variation, on top of the metric weight.
+Timing always did: MIDI is recorded at the scheduled time, swing, feel,
+drift and flams included.
+
 **Space is play/stop**, with Enter still working. `ownsKeys` skips the global
 handler when a focused control owns the key — selects, text inputs, checkboxes,
 contenteditable. Range sliders and buttons are deliberately *not* skipped: Space
@@ -344,26 +374,18 @@ I O            intro / outro
 
 ## 5. Open items
 
-**Song mode — the next thing.** The design was agreed with Gaël but not built:
-
-```
-Setup   starting conditions                     (built)
-Take    N recorded bars, frozen, reproducible   (built, fixed at 4 bars)
-Song    a timeline of sections, each either a
-        take (fixed) or a setup played live     (not built)
-```
-
-The primitive it needs already exists and is tested: applying something on a
-bar line, used by queued pattern changes, queued setup recalls and take
-recording. Open questions he has not answered: whether a section can keep some
-tracks live over a frozen take, and whether takes should ever be other than 4
-bars.
+**Song mode — built (2026-11-13), first version.** Gaël's brief: a second
+view where takes recorded live are laid end to end into a whole song, with
+the live pads usable afterwards (a break, a syncope…) and recorded into the
+song, and **no note-by-note editing** there. Next on his list: recording a
+reference vocal or guitar as audio, synced, exportable. See "Song view" in §3.
 
 **Known gaps, in rough priority order:**
 
-1. **The Ghost pad still uses unlocked randomness** — `Math.random() < 0.6` per
-   hit, outside the chaos figure system. Its positions (2, 6, 10, 14) are
-   idiomatic; only the flicker is noise. Same fix as the chaos figures.
+1. **Song view, first version.** Not done yet: intros/outros pressed in the
+   song are played but not recorded; songs and takes cannot be exported or
+   imported as files (gap 5 below matters more now); no undo for pad moves
+   beyond erasing a section's; a section is always a whole take.
 2. **Velocity is now shaped (Dynamics), but the weights in `DYN_DB` are a
    first guess**, not yet confirmed by ear. Hats and ride: beat 0, & −4, e/a
    −9 dB at 100 %; kick 0/−1/−2/−4; snare backbeat 0, elsewhere −3/−5; ghost

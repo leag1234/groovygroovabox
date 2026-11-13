@@ -60,6 +60,14 @@ Any articulation a sampled kit lacks falls back to a matching synth kit, so ever
 - A take is **frozen**: replaying it plays back those four bars note for note. Nothing is regenerated — empty the grid and set Chaos to 0 and the take is unchanged.
 - From the list: **▶** loops the take, **♪** downloads it as a MIDI file (GM drum map, same writer as the session export), **✕** deletes it.
 - Events are stored in musical time, in steps from the top of the take, so a take follows whatever tempo it is replayed at.
+- A take also keeps its **recipe**, step by step: the grid, the groove settings, the pads engaged, the drop held, the fill running, Chaos's locked figure and break for each bar, the Broken phase, the Ghost pad's notes, any wildcard drawn. That is what lets the Song view replay it through the engine and still apply pads to it. Takes recorded before this version have no recipe: they play as recorded, without pads.
+
+### Song view
+- **Live | Song** at the top switches views. The Song view lays takes end to end to build a whole song: each **section** plays one take, repeated as many times as you set (a 4-bar take ×4 is a 16-bar verse). Sections can be reordered, removed, and played from (**▶**). Space plays the song from the top; it stops by itself at the end and lets the last hit ring.
+- **The pads work on the song.** Broken, Syncope, the kick and hi-hat variants, Ghost, fills, Drop, the wildcard: everything the Live view does, applied to the take as it plays. With **● Rec pads** armed, what you press is written into the section at the step it lands on and replays every time; **⌫** on a section erases its pad moves. A pad move lasts until you press it again or the pass of the section ends.
+- There is no note-by-note editing in the Song view, on purpose: a song is arranged with the pads.
+- The take replays **identically**: the same hits as when it was recorded, Chaos, Ghost pad and Broken included (verified hit for hit). Tempo and kit apply to the whole song.
+- **♪ MIDI** downloads the whole song as one MIDI file, pad moves included. Songs are saved in the browser, like setups and takes.
 
 ### Setup bank
 - **Save** the grid together with every groove setting: tempo, swing, Feel preset and intensity, Dynamics, Chaos, the kit, per-track volume and mutes, and which live pads are engaged. Press **+**, and a field opens pre-filled with a suggested name (`Funk 96`, made unique) — type over it or press Enter to keep it.

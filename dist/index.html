@@ -1468,6 +1468,53 @@
     .stab-body.active, #stab-setup.active { grid-template-columns: 1fr; }
   }
 
+
+  /* ---------- VIEW SWITCH + SONG VIEW ---------- */
+  .view-switch { display: flex; gap: 0; }
+  .view-btn {
+    padding: 6px 14px; font-family: inherit; font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--ink-dim); background: #000;
+    border: 1px solid var(--line-2); cursor: pointer;
+  }
+  .view-btn:first-child { border-radius: 2px 0 0 2px; }
+  .view-btn:last-child { border-radius: 0 2px 2px 0; border-left: none; }
+  .view-btn.active { color: #000; background: var(--accent); border-color: var(--accent); }
+  body.view-song .pattern-bar, body.view-song #sequencer { display: none; }
+  body:not(.view-song) #arranger { display: none; }
+  .arranger {
+    padding: 14px 20px 18px;
+    background: linear-gradient(180deg, #0d0d0d, #080808);
+    min-height: 220px;
+  }
+  .arr-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  #arr-song { min-width: 180px; }
+  .arr-small { flex: none; }
+  .arr-sep { width: 12px; }
+  #arr-rec.recording { color: var(--red); border-color: var(--red); animation: takepulse 1s ease-in-out infinite; }
+  .arr-pos { font-size: 10px; color: var(--cyan); letter-spacing: 0.08em; margin-left: auto; }
+  .arr-sections { display: flex; flex-direction: column; gap: 6px; }
+  .arr-sec {
+    display: grid;
+    grid-template-columns: 28px minmax(140px, 1fr) auto 110px 150px auto;
+    gap: 10px; align-items: center;
+    padding: 6px 10px; background: #111; border: 1px solid var(--line-2); border-radius: 3px;
+  }
+  .arr-sec.playing { border-color: var(--green); box-shadow: 0 0 10px rgba(127,255,90,0.25); }
+  .arr-num { font-size: 14px; color: var(--accent); text-align: center; }
+  .arr-take { min-width: 0; }
+  .arr-rep { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink); }
+  .arr-rep span { min-width: 26px; text-align: center; }
+  .arr-len, .arr-auto { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.06em; }
+  .arr-auto { display: flex; align-items: center; gap: 6px; }
+  .arr-tools { display: flex; gap: 4px; }
+  .arr-add { margin-top: 10px; width: auto; }
+  .arr-add:disabled { opacity: 0.4; cursor: default; }
+  .arr-empty { font-size: 11px; color: var(--ink-faint); padding: 18px 4px; }
+  .arr-hint { margin-top: 12px; font-size: 9px; color: var(--ink-faint); letter-spacing: 0.04em; line-height: 1.6; }
+  @media (max-width: 760px) {
+    .arr-sec { grid-template-columns: 24px 1fr; }
+    .arr-sec > :nth-child(n+3) { grid-column: 2; }
+  }
 </style>
 </head>
 <body>
@@ -1516,6 +1563,11 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
         <span class="display-label">Bar</span>
         <span class="display-value green" id="bar-display">01</span>
       </div>
+    </div>
+
+    <div class="view-switch" title="Live: play and record takes. Song: lay takes end to end and arrange them with the pads.">
+      <button class="view-btn active" data-view="live">Live</button>
+      <button class="view-btn" data-view="song">Song</button>
     </div>
 
     <div class="header-actions">
@@ -1615,6 +1667,24 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
 
   <!-- SEQUENCER (full width) -->
   <section class="sequencer" id="sequencer"></section>
+
+  <!-- SONG VIEW: sections of takes, arranged with the pads -->
+  <section class="arranger" id="arranger">
+    <div class="arr-bar">
+      <span class="pb-lbl">Song</span>
+      <select id="arr-song" title="Your songs"></select>
+      <button class="bank-btn arr-small" id="arr-new" title="Start a new song">+ New</button>
+      <button class="bank-btn arr-small" id="arr-rename" title="Rename this song">Rename</button>
+      <button class="bank-icon danger" id="arr-del" title="Delete this song">✕</button>
+      <span class="arr-sep"></span>
+      <button class="bank-btn arr-small" id="arr-rec" title="Armed: the pads you press while the song plays are written into it, at the step they land on, and replay every time.">● Rec pads</button>
+      <button class="bank-btn arr-small" id="arr-midi" title="Download the whole song as a MIDI file">♪ MIDI</button>
+      <span class="arr-pos" id="arr-pos"></span>
+    </div>
+    <div class="arr-sections" id="arr-sections"></div>
+    <button class="bank-btn arr-add" id="arr-add">+ Add section</button>
+    <div class="arr-hint">Play (Space) runs the song from the top, ▶ on a section from there. The pads work as in the Live view; with <b>Rec pads</b> armed they are recorded into the song. Tempo and kit apply to the whole song.</div>
+  </section>
 
   <!-- BOTTOM CONSOLE: live pads (left) + settings tabs (right) -->
   <div class="bottom-console">
@@ -2294,8 +2364,16 @@ function rollChaosFigure(c, barIdx) {
   return fig;
 }
 
+const GHOST_PAD_STEPS = [2, 6, 10, 14];
+// The Ghost pad's notes for the bar currently playing (see rollChaosPlan).
+function activeGhostMask() {
+  if (arr.playing) return arr.ghostMask || GHOST_PAD_STEPS;
+  return (chaosPlan && chaosPlan.ghostMasks && chaosPlan.ghostMasks[state.chaosBarIdx]) || GHOST_PAD_STEPS;
+}
+
 // The figure for the bar currently playing.
 function activeChaosFigure() {
+  if (arr.playing) return arr.chaosFig;        // a song replays the take's own figure
   if (!chaosPlan || !chaosPlan.figures) return null;
   return chaosPlan.figures[state.chaosBarIdx] || null;
 }
@@ -2316,7 +2394,15 @@ function rollChaosPlan(c) {
   }
   const figures = [];
   for (let i = 0; i < CHAOS_PLAN_BARS; i++) figures.push(rollChaosFigure(c, i));
-  return { bars, figures, playsLeft: CHAOS_PLAN_REPEATS };
+  // The Ghost pad's notes, locked the same way: one figure per bar of the
+  // plan, replayed with it. It used to flip a 60 % coin on every hit, so no
+  // two bars and no two playbacks of a song were ever the same.
+  const ghostMasks = [];
+  for (let i = 0; i < CHAOS_PLAN_BARS; i++) {
+    const m = GHOST_PAD_STEPS.filter(() => Math.random() < 0.6);
+    ghostMasks.push(m.length ? m : [pick(GHOST_PAD_STEPS)]);
+  }
+  return { bars, figures, ghostMasks, playsLeft: CHAOS_PLAN_REPEATS };
 }
 
 // Advances the plan position; called at the top of every scheduled bar.
@@ -2680,6 +2766,7 @@ function pauseTypeGate(type, track, stepIndex) {
 
 // The pause type active for the bar currently being scheduled (or null).
 function activeChaosPauseType() {
+  if (arr.playing) return arr.chaosPause;
   if ((state.chaos || 0) < CHAOS_PAUSE_THRESHOLD || !chaosPlan) return null;
   return chaosPlan.bars[state.chaosBarIdx] || null;
 }
@@ -3252,7 +3339,7 @@ function requestPatternChange(patternId) {
 // at, and MIDI export converts steps to ticks directly.
 
 const TAKES_KEY = 'groovygroova:takes';
-const TAKE_VERSION = 1;
+const TAKE_VERSION = 2;   // 2: takes also carry their recipe (see takeRecordFrame)
 const TAKE_BARS = 4;
 
 // Recording: null, or { phase, startTime, stepDur, events }
@@ -3288,6 +3375,10 @@ function takeBarBoundary(time) {
     takeRec.stepDur = stepDuration();
     takeRec.barsLeft = TAKE_BARS;
     takeRec.events = [];
+    takeRec.k = 0;
+    takeRec.frames = [];
+    takeRec.lastFrame = null;
+    takeRec.wcs = {};
     takeUpdateUI();
     return;
   }
@@ -3295,11 +3386,12 @@ function takeBarBoundary(time) {
     takeRec.barsLeft--;
     if (takeRec.barsLeft <= 0) {
       const events = takeRec.events;
+      const recipe = { frames: takeRec.frames, wcs: takeRec.wcs };
       takeRec = null;
       takeUpdateUI();
       // Hand over on the main thread, once the audio for the last bar is out
       const delayMs = Math.max(0, (time - ctx.currentTime) * 1000);
-      setTimeout(() => takeFinish(events), delayMs);
+      setTimeout(() => takeFinish(events, recipe), delayMs);
     } else {
       takeUpdateUI();
     }
@@ -3318,17 +3410,72 @@ function takeCapture(track, time, accent, opts, art) {
                         vel: (opts && opts.vel) || undefined });
 }
 
-function takeFinish(events) {
+function takeFinish(events, recipe) {
   if (!events.length) {
     setPatternStatus('Take was empty — nothing saved');
     setTimeout(() => setPatternStatus(''), 2200);
     return;
   }
   takePendingEvents = events;
+  takePendingRecipe = recipe || null;
   takeOpenNameEditor();
 }
 
 let takePendingEvents = null;
+let takePendingRecipe = null;
+
+// ---- recipe ----
+// A take keeps the hits it played (for its MIDI export and as a fallback) AND
+// what produced them, step by step: the grid, the groove settings, the pads
+// engaged, the drop held, the fill running, this bar's locked chaos figure
+// and break, and any wildcard drawn. The song view replays a take from this
+// recipe through the live engine, so every pad can still be applied to it
+// afterwards. Stored as changes only: a frame lists what moved since the last.
+function fillNameOf(fill) {
+  if (!fill) return '';
+  return Object.keys(FILLS).find(n => FILLS[n] === fill) || '';
+}
+function takeFrameNow() {
+  const fig = activeChaosFigure();
+  return {
+    pat: JSON.stringify(state.pattern),
+    sw: state.swing, swr: state.swingRes, feel: state.feelMode, fi: state.feelIntensity,
+    dyn: state.humanize, ch: state.chaos,
+    alt: [...state.alterations].sort().join(','),
+    hold: [...state.holding].sort().join(','),
+    fill: fillNameOf(state.activeFill),
+    cf: fig ? JSON.stringify(fig) : '',
+    cp: activeChaosPauseType() || '',
+    bp: !!state.brokenPhase,     // Broken alternates A/B bars: which one this was
+    gm: activeGhostMask().join(','),
+  };
+}
+// Called by the scheduler right after each step is scheduled.
+function takeRecordFrame(stepIndex) {
+  if (!takeIsRecording()) return;
+  const f = takeFrameNow();
+  const prev = takeRec.lastFrame || {};
+  const diff = {};
+  Object.keys(f).forEach(key => { if (f[key] !== prev[key]) diff[key] = f[key]; });
+  if (Object.keys(diff).length) takeRec.frames.push({ k: takeRec.k, f: diff });
+  takeRec.lastFrame = f;
+  if (stepIndex === 0 && wildcardActive) {
+    takeRec.wcs[Math.floor(takeRec.k / STEPS)] =
+      { label: wildcardActive.label, events: wildcardActive.events };
+  }
+  takeRec.k++;
+}
+// Full frame for every step of the take.
+function recipeExpand(recipe, bars) {
+  const frames = (recipe.frames || []).slice().sort((a, b) => a.k - b.k);
+  const out = [];
+  let cur = {}, fi = 0;
+  for (let k = 0; k < bars * STEPS; k++) {
+    while (fi < frames.length && frames[fi].k === k) { cur = { ...cur, ...frames[fi].f }; fi++; }
+    out.push(cur);
+  }
+  return out;
+}
 
 // ---- storage ----
 function takesRead() {
@@ -3356,7 +3503,7 @@ function takeSuggestName() {
   return `${stem} ${n}`;
 }
 
-function takeSave(name, events) {
+function takeSave(name, events, recipe) {
   const list = takesRead();
   const entry = {
     v: TAKE_VERSION,
@@ -3367,6 +3514,7 @@ function takeSave(name, events) {
     bpm: state.bpm,
     kit: state.kit,
     events,
+    recipe: recipe || undefined,
   };
   list.push(entry);
   if (!takesWrite(list)) return null;
@@ -3427,8 +3575,10 @@ function takeExportMidi(id) {
 
   const midiEvents = [];
   entry.events.forEach(ev => {
+    const lift = (ev.w && ev.accent && (ev.track === 'snare' || ev.track === 'tom'))
+      ? Math.pow(10, GESTURE_ACCENT_DB / 20) : 1;
     toMidiEvents(ev.track, ev.s * secPerStep, ev.accent,
-                 ev.pitch ? { pitch: ev.pitch } : {}, ev.art,
+                 { pitch: ev.pitch, midiMul: (ev.vel || 1) * lift }, ev.art,
                  ev.p !== undefined ? ev.p : Math.round(ev.s) % STEPS)
       .forEach(m => midiEvents.push(m));
   });
@@ -3444,11 +3594,15 @@ function takeExportMidi(id) {
     ...trackChunk(buildDrumTrack(midiEvents, tempoMap, duration, state.cc4Export)),
   ];
 
+  midiDownload(allBytes, entry.name);
+}
+
+function midiDownload(allBytes, name) {
   const blob = new Blob([bytesToU8(allBytes)], { type: 'audio/midi' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = entry.name.replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') + '.mid';
+  a.download = name.replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') + '.mid';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -3540,8 +3694,9 @@ function bindTakes() {
     if (!takePendingEvents) { takeCloseNameEditor(); return; }
     const name = nameIn.value.trim() || takeSuggestName();
     const events = takePendingEvents;
+    const recipe = takePendingRecipe;
     takeCloseNameEditor();
-    if (takeSave(name, events)) {
+    if (takeSave(name, events, recipe)) {
       setPatternStatus(`Saved take: ${name}`);
       setTimeout(() => setPatternStatus(''), 1800);
     }
@@ -3579,6 +3734,494 @@ function bindTakes() {
   });
 
   takesRefreshSelect();
+}
+
+// ============================================================
+// SONG VIEW — takes laid end to end, every pad still playable
+// ============================================================
+// A song is a list of sections; a section is a take repeated N times. Each
+// step of the song sets the live engine from the take's recipe (grid,
+// settings, pads, fill, chaos figure, wildcard), then applies the song's own
+// pad automation on top, then lets scheduleStep generate the hits exactly as
+// in the live view. Pads pressed while a song plays act at once and, with
+// Rec armed, are written into the section at the step they land on. There is
+// no note editing here on purpose: the song is arranged with the pads.
+// Takes recorded before recipes existed play back as recorded hits, without
+// pads.
+
+const ALTER_EXCLUSIVE_GROUPS = [
+  ['kick-normal', 'kick-double', 'kick-half', 'kick-four'],
+  ['hh-closed', 'hh-disco', 'hh-open', 'hh-ride'],
+  ['snare-plus1', 'snare-plus3'],
+];
+const SONGS_KEY = 'groovygroova:songs';
+let midiCollect = null;   // set while a song is exported: play() hands hits here
+
+const arr = {
+  view: 'live', playing: false, simulating: false, rec: false,
+  songId: null, startSi: 0,
+  timeline: [], total: 0, g: 0, ended: false, pos: null,
+  over: new Map(), holdOver: new Set(), repKey: null, frame: null, lastFrame: null,
+  chaosFig: null, chaosFigStr: null, chaosPause: null, wcThisBar: null,
+  liveSnap: null, padsShown: '',
+};
+
+// ---- storage ----
+function songsRead() {
+  try { const l = JSON.parse(localStorage.getItem(SONGS_KEY) || '[]'); return Array.isArray(l) ? l : []; }
+  catch (e) { return []; }
+}
+function songsWrite(list) {
+  try { localStorage.setItem(SONGS_KEY, JSON.stringify(list)); return true; }
+  catch (e) { setPatternStatus('Could not save the song (storage full?)'); return false; }
+}
+function songCurrent() { return songsRead().find(s => s.id === arr.songId) || null; }
+function songPut(song) {
+  const list = songsRead();
+  const i = list.findIndex(s => s.id === song.id);
+  if (i >= 0) list[i] = song; else list.push(song);
+  songsWrite(list);
+}
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+// ---- timeline ----
+function arrBuildTimeline(song) {
+  const takes = takesRead();
+  const tl = [];
+  let g = 0;
+  (song.sections || []).forEach((section, si) => {
+    const take = takes.find(t => t.id === section.takeId);
+    if (!take) return;
+    const bars = take.bars || TAKE_BARS;
+    const len = Math.max(1, section.repeats || 1) * bars * STEPS;
+    tl.push({ si, section, take, bars, startG: g, len,
+              frames: take.recipe ? recipeExpand(take.recipe, bars) : null });
+    g += len;
+  });
+  return { tl, total: g };
+}
+function arrPosAt(g) {
+  for (const e of arr.timeline) {
+    if (g >= e.startG && g < e.startG + e.len) {
+      const local = g - e.startG, span = e.bars * STEPS;
+      return { entry: e, rep: Math.floor(local / span), k: local % span };
+    }
+  }
+  return null;
+}
+
+// ---- playback ----
+function arrStart() {
+  const song = songCurrent();
+  if (!song) { setPatternStatus('Create a song first'); return false; }
+  const { tl, total } = arrBuildTimeline(song);
+  if (!total) { setPatternStatus('Add a section with a take first'); return false; }
+  arr.timeline = tl; arr.total = total;
+  const startEntry = tl.find(e => e.si >= arr.startSi) || tl[0];
+  arr.g = startEntry.startG;
+  arr.ended = false; arr.repKey = null; arr.lastFrame = null; arr.frame = null;
+  arr.over.clear(); arr.holdOver.clear();
+  arr.chaosFig = null; arr.chaosFigStr = null; arr.chaosPause = null; arr.wcThisBar = null;
+  state.alterations = new Set(); state.holding = new Set();
+  wildcardQueued = false;
+  song.bpm = state.bpm; song.kit = state.kit;
+  songPut(song);
+  arr.playing = true;
+  return true;
+}
+
+function arrOnStop() {
+  if (!arr.playing) return;
+  arr.playing = false;
+  arr.ended = false;
+  takePlay = null;
+  state.activeFill = null; state.queuedFill = null; state.pendingResolve = false;
+  wildcardActive = null; wildcardQueued = false;
+  arr.over.clear(); arr.holdOver.clear();
+  state.alterations = new Set(); state.holding = new Set();
+  arr.startSi = 0;
+  if (!arr.simulating) {
+    arrSyncPads();
+    document.querySelectorAll('.pad.momentary').forEach(p => p.classList.remove('holding'));
+    arrShowPosition(null);
+  }
+}
+
+// Set the engine to song step arr.g. False when the song is over.
+function arrBeforeStep(time) {
+  if (arr.ended) return false;
+  if (arr.g >= arr.total) {
+    arr.ended = true;
+    if (!arr.simulating) {
+      // Let the last bar ring out, then stop like an outro does
+      const ms = Math.max(0, (time - ctx.currentTime) * 1000);
+      setTimeout(() => stopPlaying(), ms);
+    }
+    return false;
+  }
+  const pos = arrPosAt(arr.g);
+  arr.pos = pos;
+  const e = pos.entry;
+  const repKey = e.si + ':' + pos.rep;
+  const newRep = repKey !== arr.repKey;
+  if (newRep) {
+    // Pad moves live inside one pass of a section: a new pass starts clean
+    arr.repKey = repKey; arr.over.clear(); arr.holdOver.clear(); arr.lastFrame = null;
+  }
+  const barStart = pos.k % STEPS === 0;
+  if (!e.frames) {
+    // A take from before recipes: its recorded hits, no pads
+    takePlay = { events: e.take.events, bars: e.bars, pos: pos.k, name: e.take.name };
+    arr.frame = null; arr.chaosFig = null; arr.chaosPause = null; arr.wcThisBar = null;
+  } else {
+    takePlay = null;
+    const f = e.frames[pos.k], prev = arr.lastFrame || {};
+    if (f.pat !== prev.pat) state.pattern = JSON.parse(f.pat);
+    state.swing = f.sw; state.swingRes = f.swr;
+    state.feelMode = f.feel; state.feelIntensity = f.fi;
+    state.humanize = f.dyn; state.chaos = f.ch;
+    if (f.fill !== prev.fill) {
+      if (barStart) state.queuedFill = f.fill || null;
+      else state.activeFill = f.fill ? FILLS[f.fill] : null;
+    }
+    // scheduleStep flips the Broken phase at each bar line: pre-set it so the
+    // flip lands on the phase the take played
+    if (barStart && f.bp !== undefined) state.brokenPhase = !f.bp;
+    if (f.cf !== arr.chaosFigStr) { arr.chaosFigStr = f.cf; arr.chaosFig = f.cf ? JSON.parse(f.cf) : null; }
+    arr.chaosPause = f.cp || null;
+    arr.ghostMask = f.gm ? f.gm.split(',').map(Number) : null;
+    if (barStart) {
+      const wc = e.take.recipe.wcs && e.take.recipe.wcs[Math.floor(pos.k / STEPS)];
+      arr.wcThisBar = wc ? { label: wc.label, events: wc.events } : null;
+    }
+    arr.frame = f; arr.lastFrame = f;
+  }
+  (e.section.auto || []).forEach(ev => {
+    if (ev.rep === pos.rep && ev.k === pos.k) arrApplyAuto(ev, barStart);
+  });
+  arrApplyPads();
+  if (barStart && !arr.simulating) arrShowPosition(pos, time);
+  return true;
+}
+
+function arrApplyAuto(ev, barStart) {
+  if (ev.type === 'alter') arr.over.set(ev.id, ev.on);
+  else if (ev.type === 'hold') { if (ev.on) arr.holdOver.add(ev.id); else arr.holdOver.delete(ev.id); }
+  else if (ev.type === 'fill') {
+    if (barStart) state.queuedFill = ev.id; else state.activeFill = FILLS[ev.id] || null;
+  }
+  else if (ev.type === 'wc' && barStart) arr.wcThisBar = ev.wc;
+}
+
+// Pads in effect: the take's own, then the song's moves on top.
+function arrApplyPads() {
+  const f = arr.frame;
+  const set = new Set(f && f.alt ? f.alt.split(',').filter(Boolean) : []);
+  arr.over.forEach((on, id) => {
+    if (on) {
+      const group = ALTER_EXCLUSIVE_GROUPS.find(gr => gr.includes(id));
+      if (group) group.forEach(x => set.delete(x));
+      set.add(id);
+    } else set.delete(id);
+  });
+  state.alterations = set;
+  const hold = new Set(f && f.hold ? f.hold.split(',').filter(Boolean) : []);
+  arr.holdOver.forEach(id => hold.add(id));
+  state.holding = hold;
+  if (!arr.simulating) arrSyncPads();
+}
+function arrSyncPads() {
+  const key = [...state.alterations].sort().join(',');
+  if (key === arr.padsShown) return;
+  arr.padsShown = key;
+  document.querySelectorAll('.pad.toggle').forEach(p =>
+    p.classList.toggle('active', state.alterations.has(p.dataset.alter)));
+}
+
+// ---- pads pressed in the song view ----
+// Recorded at the next step to be scheduled (arr.g), which is where they act.
+function arrRecord(ev, g) {
+  if (!arr.rec || arr.simulating) return;
+  const pos = arrPosAt(g);
+  if (!pos) return;
+  const song = songCurrent();
+  if (!song) return;
+  const section = song.sections[pos.entry.si];
+  if (!section) return;
+  section.auto = (section.auto || []).filter(x =>
+    !(x.rep === pos.rep && x.k === pos.k && x.type === ev.type && x.id === ev.id));
+  section.auto.push({ ...ev, rep: pos.rep, k: pos.k });
+  pos.entry.section.auto = section.auto;      // the running timeline sees it too
+  songPut(song);
+  arrRenderCount(pos.entry.si, section.auto.length);
+}
+function arrToggle(id) {
+  if (!arr.playing) { setPatternStatus('Play the song to use the pads'); setTimeout(() => setPatternStatus(''), 1800); return; }
+  const on = !state.alterations.has(id);
+  arr.over.set(id, on);
+  arrApplyPads();
+  arrRecord({ type: 'alter', id, on }, arr.g);
+}
+function arrHold(id, on) {
+  if (on) arr.holdOver.add(id); else arr.holdOver.delete(id);
+  arrRecord({ type: 'hold', id, on }, arr.g);
+}
+function arrFill(name) {
+  if (!arr.playing) return;
+  // Same rule as the replay: on a bar line it is the next bar's fill,
+  // anywhere else it runs from the next step of this bar.
+  if (arr.g % STEPS === 0) state.queuedFill = name;
+  else state.activeFill = FILLS[name];
+  arrRecord({ type: 'fill', id: name }, arr.g);
+  const pad = document.querySelector(`.pad[data-fill="${name}"]`);
+  if (pad) { pad.classList.add('queued'); setTimeout(() => pad.classList.remove('queued'), 250); }
+}
+
+// ---- export: run the song headless, collect every hit ----
+function arrExportMidi() {
+  const song = songCurrent();
+  if (!song) return;
+  if (state.playing) stopPlaying();
+  audio();
+  const snap = engineSnapshot();
+  const events = [];
+  const startSi = arr.startSi;
+  arr.startSi = 0;
+  arr.simulating = true;
+  try {
+    if (!arrStart()) return;
+    const sd = stepDuration();
+    let t = 0, step = 0;
+    midiCollect = (track, time, accent, opts, art) =>
+      toMidiEvents(track, time, accent, opts, art, currentStepPos).forEach(m => events.push(m));
+    while (arrBeforeStep(t)) {
+      state.step = step;
+      dynamicsDriftAdvance();
+      currentStepPos = step;
+      scheduleStep(step, t + sd * swingOffsetSteps(step));
+      currentStepPos = null;
+      arr.g++;
+      t += sd;
+      step = (step + 1) % STEPS;
+    }
+    events.sort((a, b) => a.time - b.time);
+    const tempoMap = [{ time: 0, bpm: state.bpm }];
+    const header = [0x4D, 0x54, 0x68, 0x64, ...uint32(6), ...uint16(1), ...uint16(2), ...uint16(PPQ)];
+    midiDownload([...header,
+      ...trackChunk(buildTempoTrack(tempoMap, t)),
+      ...trackChunk(buildDrumTrack(events, tempoMap, t, state.cc4Export))], song.name);
+  } finally {
+    midiCollect = null;
+    arrOnStop();
+    arr.simulating = false;
+    arr.startSi = startSi;
+    hatRinging = null;
+    engineRestore(snap);
+  }
+}
+
+// ---- switching views ----
+function engineSnapshot() {
+  return {
+    pat: JSON.stringify(state.pattern), sw: state.swing, swr: state.swingRes,
+    feel: state.feelMode, fi: state.feelIntensity, dyn: state.humanize, ch: state.chaos,
+    alt: [...state.alterations],
+  };
+}
+function engineRestore(s) {
+  state.pattern = JSON.parse(s.pat);
+  state.swing = s.sw; state.swingRes = s.swr; state.feelMode = s.feel;
+  state.feelIntensity = s.fi; state.humanize = s.dyn; state.chaos = s.ch;
+  state.alterations = new Set(s.alt);
+  state.holding = new Set();
+}
+function arrSetView(view) {
+  if (view === arr.view) return;
+  if (state.playing) stopPlaying();
+  if (view === 'song') {
+    arr.liveSnap = engineSnapshot();
+    state.alterations = new Set();
+    arr.view = 'song';
+    arrRender();
+  } else {
+    arr.view = 'live';
+    if (arr.liveSnap) engineRestore(arr.liveSnap);
+    document.querySelectorAll('.step').forEach(el => renderStep(el, el.dataset.track, parseInt(el.dataset.step)));
+    TRACKS.forEach(t => updateArtIndicators(t.id));
+  }
+  arr.padsShown = null;
+  arrSyncPads();
+  document.body.classList.toggle('view-song', arr.view === 'song');
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === arr.view));
+  setPatternStatus('');
+}
+
+// ---- UI ----
+function arrShowPosition(pos, time) {
+  const show = () => {
+    if (pos && !arr.playing) return;     // a late update after a stop
+    const el = document.getElementById('arr-pos');
+    document.querySelectorAll('.arr-sec').forEach(c =>
+      c.classList.toggle('playing', !!pos && +c.dataset.si === pos.entry.si));
+    if (!el) return;
+    if (!pos) { el.textContent = ''; return; }
+    const e = pos.entry;
+    el.textContent = `Section ${e.si + 1} · pass ${pos.rep + 1}/${e.section.repeats} · bar ${Math.floor(pos.k / STEPS) + 1}/${e.bars}`;
+  };
+  if (time == null) { show(); return; }
+  setTimeout(show, Math.max(0, (time - ctx.currentTime) * 1000));
+}
+function arrRenderCount(si, n) {
+  const el = document.querySelector(`.arr-sec[data-si="${si}"] .arr-auto-n`);
+  if (el) el.textContent = n ? `${n} pad move${n > 1 ? 's' : ''}` : 'no pad moves';
+}
+const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function arrRender() {
+  const songs = songsRead();
+  if (!arr.songId || !songs.find(s => s.id === arr.songId)) arr.songId = songs.length ? songs[0].id : null;
+  const sel = document.getElementById('arr-song');
+  sel.innerHTML = songs.length
+    ? songs.map(s => `<option value="${s.id}"${s.id === arr.songId ? ' selected' : ''}>${escHtml(s.name)}</option>`).join('')
+    : '<option value="">— no songs —</option>';
+  const song = songCurrent();
+  const takes = takesRead();
+  const box = document.getElementById('arr-sections');
+  document.getElementById('arr-add').disabled = !song;
+  if (!song) {
+    box.innerHTML = '<div class="arr-empty">Create a song, then add sections. A section plays one of your takes, as many times as you set. Record takes in the Live view.</div>';
+    return;
+  }
+  if (!song.sections.length) {
+    box.innerHTML = '<div class="arr-empty">No sections yet. Add one, pick a take, set how many times it repeats.</div>';
+    return;
+  }
+  const takeOpts = id => (takes.length ? takes : []).map(t =>
+    `<option value="${t.id}"${t.id === id ? ' selected' : ''}>${escHtml(t.name)}${t.recipe ? '' : ' (no pads)'}</option>`).join('')
+    + (takes.find(t => t.id === id) ? '' : `<option value="" selected>— pick a take —</option>`);
+  let bar = 1;
+  box.innerHTML = song.sections.map((sec, si) => {
+    const take = takes.find(t => t.id === sec.takeId);
+    const bars = take ? (take.bars || TAKE_BARS) * sec.repeats : 0;
+    const from = bar; bar += bars;
+    const n = (sec.auto || []).length;
+    return `<div class="arr-sec" data-si="${si}">
+      <span class="arr-num">${si + 1}</span>
+      <select class="arr-take" data-act="take">${takeOpts(sec.takeId)}</select>
+      <span class="arr-rep"><button class="bank-icon" data-act="rep-">−</button><span>×${sec.repeats}</span><button class="bank-icon" data-act="rep+">+</button></span>
+      <span class="arr-len">${bars ? `bars ${from}–${from + bars - 1}` : '—'}</span>
+      <span class="arr-auto"><span class="arr-auto-n">${n ? `${n} pad move${n > 1 ? 's' : ''}` : 'no pad moves'}</span>
+        <button class="bank-icon" data-act="clear" title="Erase this section's pad moves">⌫</button></span>
+      <span class="arr-tools">
+        <button class="bank-icon" data-act="play" title="Play the song from this section">▶</button>
+        <button class="bank-icon" data-act="up" title="Move up">↑</button>
+        <button class="bank-icon" data-act="down" title="Move down">↓</button>
+        <button class="bank-icon danger" data-act="del" title="Remove this section">✕</button>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function arrEdit(fn) {
+  const song = songCurrent();
+  if (!song) return;
+  if (state.playing) stopPlaying();
+  fn(song);
+  songPut(song);
+  arrRender();
+}
+
+function bindArranger() {
+  document.querySelectorAll('.view-btn').forEach(b =>
+    b.addEventListener('click', () => { arrSetView(b.dataset.view); b.blur(); }));
+  const sel = document.getElementById('arr-song');
+  sel.addEventListener('change', () => {
+    if (state.playing) stopPlaying();
+    arr.songId = sel.value || null;
+    const song = songCurrent();
+    if (song && song.bpm) bankDrive('bpm-slider', song.bpm);
+    if (song && song.kit) {
+      const kb = document.querySelector(`.kit-btn[data-kit="${song.kit}"]`);
+      if (kb && kb.style.display !== 'none') kb.click();
+    }
+    arrRender();
+  });
+  document.getElementById('arr-new').addEventListener('click', () => {
+    const name = window.prompt('Song name', `Song ${songsRead().length + 1}`);
+    if (!name) return;
+    const song = { id: uid('s'), name: name.trim().slice(0, 40), created: Date.now(),
+                   bpm: state.bpm, kit: state.kit, sections: [] };
+    songPut(song);
+    arr.songId = song.id;
+    arrRender();
+  });
+  document.getElementById('arr-rename').addEventListener('click', () => {
+    const song = songCurrent();
+    if (!song) return;
+    const name = window.prompt('Rename song', song.name);
+    if (!name) return;
+    song.name = name.trim().slice(0, 40);
+    songPut(song);
+    arrRender();
+  });
+  document.getElementById('arr-del').addEventListener('click', () => {
+    const song = songCurrent();
+    if (!song || !window.confirm(`Delete the song "${song.name}"? The takes it uses are kept.`)) return;
+    if (state.playing) stopPlaying();
+    songsWrite(songsRead().filter(s => s.id !== song.id));
+    arr.songId = null;
+    arrRender();
+  });
+  const recBtn = document.getElementById('arr-rec');
+  recBtn.addEventListener('click', () => {
+    arr.rec = !arr.rec;
+    recBtn.classList.toggle('recording', arr.rec);
+    recBtn.blur();
+  });
+  document.getElementById('arr-midi').addEventListener('click', e => { e.currentTarget.blur(); arrExportMidi(); });
+  document.getElementById('arr-add').addEventListener('click', () => arrEdit(song => {
+    const takes = takesRead();
+    const last = song.sections[song.sections.length - 1];
+    song.sections.push({ id: uid('x'), takeId: last ? last.takeId : (takes[0] ? takes[0].id : ''),
+                         repeats: 1, auto: [] });
+  }));
+  const box = document.getElementById('arr-sections');
+  box.addEventListener('change', e => {
+    const card = e.target.closest('.arr-sec');
+    if (!card || e.target.dataset.act !== 'take') return;
+    const si = +card.dataset.si;
+    arrEdit(song => {
+      const sec = song.sections[si];
+      if (sec.takeId !== e.target.value && (sec.auto || []).length &&
+          !window.confirm('This section has pad moves recorded on the old take. Keep them on the new one?')) sec.auto = [];
+      sec.takeId = e.target.value;
+    });
+  });
+  box.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act]');
+    const card = e.target.closest('.arr-sec');
+    if (!btn || !card) return;
+    btn.blur();
+    const si = +card.dataset.si, act = btn.dataset.act;
+    if (act === 'play') {
+      if (state.playing) stopPlaying();
+      arr.startSi = si;
+      startPlaying();
+      return;
+    }
+    arrEdit(song => {
+      const secs = song.sections, sec = secs[si];
+      if (act === 'rep+') sec.repeats = Math.min(16, sec.repeats + 1);
+      if (act === 'rep-') {
+        sec.repeats = Math.max(1, sec.repeats - 1);
+        sec.auto = (sec.auto || []).filter(x => x.rep < sec.repeats);
+      }
+      if (act === 'clear' && (sec.auto || []).length && window.confirm('Erase the pad moves of this section?')) sec.auto = [];
+      if (act === 'up' && si > 0) [secs[si - 1], secs[si]] = [secs[si], secs[si - 1]];
+      if (act === 'down' && si < secs.length - 1) [secs[si + 1], secs[si]] = [secs[si], secs[si + 1]];
+      if (act === 'del') secs.splice(si, 1);
+    });
+  });
 }
 
 // ============================================================
@@ -5132,6 +5775,15 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   }
   // A written level (crescendo, fade, a final crash that has to ring out)
   if (opts.vel) v *= opts.vel;
+  // MIDI gets everything the ear gets on top of the metric weight: the
+  // written level, the accent lift and the per-hit variation.
+  const vol = state.volume[track] * dynW;
+  const midiOpts = vol > 0 ? { ...opts, midiMul: v / vol } : opts;
+  if (midiCollect) {             // song export: collect, do not sound
+    voiceBus = null;
+    midiCollect(track, time, accent, midiOpts, art);
+    return;
+  }
 
   // Samples kit fast path: if we have a sample for this exact (track, articulation),
   // use it directly. Otherwise fall through to the synth dispatch (with the
@@ -5139,7 +5791,7 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   if (isSampleKit(state.kit) && SAMPLE_KITS[state.kit].manifest[`${track}:${art}`]) {
     playSample(state.kit, track, art, time, v, accent, opts.pitch, dynW);
     voiceBus = null;
-    recordEvent(track, time, accent, opts, art);
+    recordEvent(track, time, accent, midiOpts, art);
     return;
   }
   // A sampled kit playing a synth voice for what it lacks (Salamander's clap,
@@ -5208,7 +5860,7 @@ function play(track, time, accent=false, opts={}, articulation=null) {
   }
 
   voiceBus = null;
-  recordEvent(track, time, accent, opts, art);
+  recordEvent(track, time, accent, midiOpts, art);
 }
 
 // ---- Hi-hat choke ----
@@ -5366,7 +6018,8 @@ function toMidiEvents(track, relTime, accent, opts, articulation, pos = null) {
   const velMul = mapping.velMul || 1.0;
   const baseV = accent ? 110 : 90;
   const velocity = Math.max(15, Math.min(127,
-    Math.round(state.volume[track] * baseV * velMul * dynamicsWeight(track, articulation, pos, accent))
+    Math.round(state.volume[track] * baseV * velMul * dynamicsWeight(track, articulation, pos, accent) *
+               ((opts && opts.midiMul) || 1))
   ));
 
   const out = [];
@@ -5539,6 +6192,7 @@ function playFillResolve(time) {
 function queueFill(fillName) {
   const fill = FILLS[fillName];
   if (!fill) return;
+  if (arr.view === 'song') { arrFill(fillName); return; }
 
   // Activate the fill for the CURRENT bar — its steps map will be consulted
   // starting from the next scheduled step. If we're already past the fill's
@@ -5751,6 +6405,9 @@ function scheduleStep(stepIndex, time) {
     if (wildcardQueued) {
       wildcardQueued = false;
       wildcardActive = drawWildcard();
+      if (arr.playing) arrRecord({ type: 'wc', wc: { label: wildcardActive.label, events: wildcardActive.events } }, arr.g);
+    } else if (arr.playing && arr.wcThisBar) {
+      wildcardActive = arr.wcThisBar;           // drawn when the take was played, or recorded in the song
     }
     // Apply a queued bank entry at the start of the bar — the same bar-line
     // handoff the song mode will use.
@@ -5901,7 +6558,7 @@ function scheduleStep(stepIndex, time) {
   const fig = activeChaosFigure();
   let snareArt = stepArt('snare', stepIndex);
   if (alt.has('ghost')) {
-    if ([2, 6, 10, 14].includes(stepIndex) && Math.random() < 0.6) {
+    if (activeGhostMask().includes(stepIndex)) {
       play('snare', T('snare'), false, {}, 'ghost');
     }
   }
@@ -6041,6 +6698,9 @@ function scheduleStep(stepIndex, time) {
 
 function scheduler() {
   while (nextStepTime < ctx.currentTime + SCHEDULE_AHEAD_S) {
+    // Song view: set the engine to this step of the song (take recipe plus
+    // pad automation) before anything reads it, swing included.
+    if (arr.playing && !arrBeforeStep(nextStepTime)) break;
     const swingOffset = stepDuration() * swingOffsetSteps(state.step);
     const stepTime = nextStepTime + swingOffset;
     // Every hit scheduled for this step knows its metric position (Dynamics)
@@ -6050,6 +6710,8 @@ function scheduler() {
     currentStepPos = state.step;
     scheduleStep(state.step, stepTime);
     currentStepPos = null;
+    if (takeIsRecording()) takeRecordFrame(state.step);
+    if (arr.playing) arr.g++;
 
     // Metronome click on every quarter (steps 0, 4, 8, 12)
     if (state.metronome && state.step % 4 === 0) {
@@ -6117,6 +6779,7 @@ async function startPlaying() {
   } catch (e) { /* ignore */ }
 
   if (state.playing) return;
+  if (arr.view === 'song' && !arrStart()) return;
 
   state.step = 0;
   state.bar = 1;
@@ -6193,6 +6856,7 @@ async function startPlaying() {
 function stopPlaying() {
   if (!state.playing) return;
   state.playing = false;
+  arrOnStop();
   resetKickGuard();
   // An armed take never survives a stop, and a recording in progress is
   // dropped rather than saved half-finished.
@@ -6700,16 +7364,11 @@ function bindControls() {
   // Groups of mutually-exclusive alterations.
   // Within a group, activating one deactivates the others.
   // Alterations NOT listed in any group are independent toggles.
-  const ALTER_EXCLUSIVE_GROUPS = [
-    ['kick-normal', 'kick-double', 'kick-half', 'kick-four'],
-    ['hh-closed', 'hh-disco', 'hh-open', 'hh-ride'],
-    ['snare-plus1', 'snare-plus3'],
-  ];
-
   // Toggle pads (alterations)
   document.querySelectorAll('.pad.toggle').forEach(pad => {
     pad.addEventListener('click', () => {
       const id = pad.dataset.alter;
+      if (arr.view === 'song') { arrToggle(id); return; }
       const group = ALTER_EXCLUSIVE_GROUPS.find(g => g.includes(id));
 
       if (state.alterations.has(id)) {
@@ -6748,10 +7407,13 @@ function bindControls() {
     const press = () => {
       state.holding.add(id);
       pad.classList.add('holding');
+      if (arr.playing) arrHold(id, true);
     };
     const release = () => {
+      if (!state.holding.has(id) && !pad.classList.contains('holding')) return;
       state.holding.delete(id);
       pad.classList.remove('holding');
+      if (arr.playing) arrHold(id, false);
     };
     pad.addEventListener('mousedown', press);
     pad.addEventListener('mouseup', release);
@@ -6828,6 +7490,7 @@ function bindControls() {
       if (pad && !state.holding.has(id)) {
         state.holding.add(id);
         pad.classList.add('holding');
+        if (arr.playing) arrHold(id, true);
       }
     }
   });
@@ -6838,6 +7501,7 @@ function bindControls() {
       const pad = document.querySelector(`.pad.momentary[data-alter="${id}"]`);
       state.holding.delete(id);
       if (pad) pad.classList.remove('holding');
+      if (arr.playing) arrHold(id, false);
     }
   });
 }
@@ -7477,6 +8141,7 @@ bindControls();
 applyStyleDefaults(state.currentPattern);
 bindBank();
 bindTakes();
+bindArranger();
 bindSong();
 loadMappings();
 bindMidiUI();
