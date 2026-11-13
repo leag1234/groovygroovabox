@@ -1522,7 +1522,7 @@
   .arr-pass { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.28); }
   .arr-mark { position: absolute; bottom: 3px; width: 2px; height: 12px; margin-left: -1px; background: #fff; border-radius: 1px; }
   .arr-start {
-    position: absolute; top: 0; height: 88px; width: 14px; margin-left: -7px; cursor: ew-resize; z-index: 3;
+    position: absolute; top: 0; bottom: 0; width: 14px; margin-left: -7px; cursor: ew-resize; z-index: 3;
   }
   .arr-start::before {   /* the flag on the ruler */
     content: ''; position: absolute; left: 0; top: 0;
@@ -1533,7 +1533,7 @@
     background: color-mix(in srgb, var(--accent) 45%, transparent);
   }
   .arr-start:hover::before { border-top-color: #fff; }
-  .arr-insert { display: none; position: absolute; top: 20px; bottom: 0; width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 8px #fff; pointer-events: none; z-index: 4; }
+  .arr-insert { display: none; position: absolute; top: 20px; height: 72px; width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 8px #fff; pointer-events: none; z-index: 4; }
   .arr-dropzone {
     position: absolute; top: 0; height: 64px; box-sizing: border-box;
     border: 1px dashed #333; border-radius: 3px; display: flex; align-items: center; justify-content: center;
@@ -1552,6 +1552,41 @@
   .arr-inspector .bank-btn:disabled { opacity: 0.35; cursor: default; }
   .arr-note { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.04em; line-height: 1.6; }
   .arr-empty { padding: 30px 12px; }
+
+  /* ---------- AUDIO TRACKS ---------- */
+  .arr-mixwrap { display: flex; align-items: flex-start; gap: 0; }
+  .arr-heads { position: relative; flex: none; width: 214px; height: 288px; }
+  .arr-mixwrap .arr-timeline { flex: 1; min-width: 0; border-radius: 0 3px 3px 0; }
+  .arr-canvas { height: 288px !important; }
+  .at-head {
+    position: absolute; left: 0; right: 4px; height: 42px; box-sizing: border-box;
+    padding: 3px 5px; background: #111; border: 1px solid var(--line-2); border-radius: 3px 0 0 3px;
+    display: flex; flex-direction: column; justify-content: center; gap: 3px;
+  }
+  .at-head.at-drums { top: 24px; height: 64px; font-size: 9px; letter-spacing: 0.2em; color: var(--ink-faint); text-transform: uppercase; justify-content: center; padding-left: 10px; }
+  .at-row { display: flex; align-items: center; gap: 3px; }
+  .at-name { flex: 1; min-width: 0; padding: 2px 4px; font-family: inherit; font-size: 9px; color: var(--ink); background: #000; border: 1px solid var(--line-2); border-radius: 2px; }
+  .at-name:focus { outline: none; border-color: var(--accent); }
+  .at-btn { width: 20px; height: 18px; padding: 0; font-family: inherit; font-size: 9px; font-weight: 700; color: var(--ink-dim); background: #000; border: 1px solid var(--line-2); border-radius: 2px; cursor: pointer; }
+  .at-r.on { color: #fff; background: var(--red); border-color: var(--red); }
+  .at-m.on { color: #000; background: #ffca28; border-color: #ffca28; }
+  .at-s.on { color: #000; background: var(--green); border-color: var(--green); }
+  .at-vol { width: 64px; }
+  .at-pan { width: 40px; }
+  .at-head input[type=range] { height: 12px; margin: 0; }
+  .at-ch { font-size: 8px; padding: 0 2px; height: 16px; }
+  .at-meter { flex: 1; height: 6px; min-width: 18px; background: #000; border: 1px solid #222; border-radius: 1px; overflow: hidden; }
+  .at-meter i { display: block; height: 100%; width: 0; background: var(--green); transition: width 0.05s linear; }
+  .at-meter i.clip { background: var(--red); }
+  .at-lane { position: absolute; left: 0; right: 0; height: 42px; background: #0b0b0b; border-top: 1px solid #161616; border-bottom: 1px solid #161616; }
+  .at-clip { position: absolute; top: 1px; height: 40px; box-sizing: border-box; background: rgba(0, 229, 255, 0.10); border: 1px solid rgba(0, 229, 255, 0.55); border-radius: 2px; overflow: hidden; cursor: pointer; }
+  .at-clip canvas { display: block; width: 100%; height: 40px; }
+  .at-clip.sel { box-shadow: 0 0 0 2px #fff inset; }
+  #arr-recaudio.recording { color: #fff; background: var(--red); border-color: var(--red); animation: takepulse 1s ease-in-out infinite; }
+  #at-input { max-width: 170px; font-size: 9px; }
+  .arr-lat { font-size: 9px; color: var(--ink-faint); display: flex; align-items: center; gap: 4px; }
+  #at-lat { width: 52px; padding: 3px 4px; font-family: inherit; font-size: 10px; color: var(--ink); background: #000; border: 1px solid var(--line-2); border-radius: 2px; }
+  @media (max-width: 760px) { .arr-heads { width: 150px; } .at-vol { width: 40px; } .at-pan { width: 28px; } }
 </style>
 </head>
 <body>
@@ -1712,10 +1747,18 @@
       <button class="bank-icon" id="arr-home" title="Back to the start of the song">⏮</button>
       <button class="bank-btn arr-small" id="arr-rec" title="Armed: the pads you press while the song plays are written into it, at the step they land on, and replay every time.">● Rec pads</button>
       <button class="bank-btn arr-small" id="arr-midi" title="Download the whole song as a MIDI file">♪ MIDI</button>
+      <button class="bank-btn arr-small" id="arr-export" title="Download a ZIP: drums.wav, one WAV per audio track, mix.wav and drums.mid, all from bar 1, ready for a DAW">⤓ Export audio</button>
+      <span class="arr-sep"></span>
+      <button class="bank-btn arr-small arr-recaudio" id="arr-recaudio" title="Record the armed audio tracks while the song plays from the start marker">● Rec audio</button>
+      <select id="at-input" title="Audio input"><option value="">Input…</option></select>
+      <label class="arr-lat" title="Recording latency: how late a recorded sound arrives. Measured by the A/V auto-calibration (Setup tab); adjust by hand if takes sound early or late.">Lat <input type="number" id="at-lat" min="0" max="2000" step="1"> ms</label>
       <span class="arr-pos" id="arr-pos"></span>
     </div>
     <div class="arr-palette" id="arr-palette"></div>
-    <div class="arr-timeline" id="arr-timeline"></div>
+    <div class="arr-mixwrap">
+      <div class="arr-heads" id="arr-heads"></div>
+      <div class="arr-timeline" id="arr-timeline"></div>
+    </div>
     <div class="arr-inspector" id="arr-inspector"></div>
   </section>
 
@@ -3851,6 +3894,7 @@ function arrStart() {
   song.bpm = state.bpm; song.kit = state.kit;
   songPut(song);
   arr.playing = true;
+  arr.audioStarted = false;
   if (!arr.simulating) arrCursorStart();
   return true;
 }
@@ -3865,6 +3909,9 @@ function arrOnStop() {
   arr.over.clear(); arr.holdOver.clear();
   state.alterations = new Set(); state.holding = new Set();
   if (!arr.simulating) {
+    atStopPlayback();
+    if (atIn.rec) atRecordEnd();
+    arrRecordUI();
     arrSyncPads();
     document.querySelectorAll('.pad.momentary').forEach(p => p.classList.remove('holding'));
     arrCursorStop();
@@ -3882,6 +3929,13 @@ function arrBeforeStep(time) {
       setTimeout(() => stopPlaying(), ms);
     }
     return false;
+  }
+  if (!arr.audioStarted && !arr.simulating) {
+    // First step of this playback: start the audio tracks from here, and
+    // mark where the song starts for a recording in progress
+    arr.audioStarted = true;
+    atStartPlayback(time);
+    if (atIn.rec) { atIn.rec.songT0 = time; atIn.rec.startG = arr.g; }
   }
   const pos = arrPosAt(arr.g);
   arr.pos = pos;
@@ -4003,20 +4057,18 @@ function arrFill(name) {
 }
 
 // ---- export: run the song headless, collect every hit ----
-function arrExportMidi() {
-  const song = songCurrent();
-  if (!song) return;
-  if (state.playing) stopPlaying();
+function arrMidiBytes(song) {
   audio();
   const snap = engineSnapshot();
   const events = [];
   const startG = arr.startG;
   arr.startG = 0;
   arr.simulating = true;
+  let t = 0;
   try {
-    if (!arrStart()) return;
+    if (!arrStart()) return null;
     const sd = stepDuration();
-    let t = 0, step = 0;
+    let step = 0;
     midiCollect = (track, time, accent, opts, art) =>
       toMidiEvents(track, time, accent, opts, art, currentStepPos).forEach(m => events.push(m));
     while (arrBeforeStep(t)) {
@@ -4029,12 +4081,6 @@ function arrExportMidi() {
       t += sd;
       step = (step + 1) % STEPS;
     }
-    events.sort((a, b) => a.time - b.time);
-    const tempoMap = [{ time: 0, bpm: state.bpm }];
-    const header = [0x4D, 0x54, 0x68, 0x64, ...uint32(6), ...uint16(1), ...uint16(2), ...uint16(PPQ)];
-    midiDownload([...header,
-      ...trackChunk(buildTempoTrack(tempoMap, t)),
-      ...trackChunk(buildDrumTrack(events, tempoMap, t, state.cc4Export))], song.name);
   } finally {
     midiCollect = null;
     arrOnStop();
@@ -4043,6 +4089,19 @@ function arrExportMidi() {
     hatRinging = null;
     engineRestore(snap);
   }
+  events.sort((a, b) => a.time - b.time);
+  const tempoMap = [{ time: 0, bpm: state.bpm }];
+  const header = [0x4D, 0x54, 0x68, 0x64, ...uint32(6), ...uint16(1), ...uint16(2), ...uint16(PPQ)];
+  return [...header,
+    ...trackChunk(buildTempoTrack(tempoMap, t)),
+    ...trackChunk(buildDrumTrack(events, tempoMap, t, state.cc4Export))];
+}
+function arrExportMidi() {
+  const song = songCurrent();
+  if (!song) return;
+  if (state.playing) stopPlaying();
+  const bytes = arrMidiBytes(song);
+  if (bytes) midiDownload(bytes, song.name);
 }
 
 // ---- switching views ----
@@ -4070,6 +4129,7 @@ function arrSetView(view) {
     arrRender();
   } else {
     arr.view = 'live';
+    atCloseInput();
     if (arr.liveSnap) engineRestore(arr.liveSnap);
     document.querySelectorAll('.step').forEach(el => renderStep(el, el.dataset.track, parseInt(el.dataset.step)));
     TRACKS.forEach(t => updateArtIndicators(t.id));
@@ -4150,8 +4210,14 @@ function arrRender() {
     : '<option value="">— no songs —</option>';
   arrColors = takeColorMap(takesRead());
   arrRenderPalette();
+  arrRenderHeads();
   arrRenderTimeline();
   arrRenderInspector();
+  atUpdateLatencyUI();
+  const song = songCurrent();
+  if (song && songAudio(song).clips.some(c => !clipCache.has(c.id))) {
+    songClipsLoad(song).then(() => { if (songCurrent() === null || songCurrent().id !== song.id) return; arrRenderTimeline(); });
+  }
 }
 
 function arrRenderPalette() {
@@ -4176,10 +4242,13 @@ function arrRenderTimeline() {
     wrap.innerHTML = '<div class="arr-note arr-empty">Empty song. Click or drag a take from the palette to add a section.</div>';
     return;
   }
+  const barS = STEPS * stepDuration();
+  const segs = trackSegments(song);
+  const audioBars = Math.ceil(Math.max(0, ...segs.flat().map(x => x.b)) / barS);
   const avail = Math.max(200, wrap.clientWidth - 2);
   // Always leave free room after the last block to drop takes onto
   const tail = Math.max(4, Math.ceil(bars * 0.12));
-  const shown = Math.max(bars + tail, 8);
+  const shown = Math.max(bars + tail, audioBars + 1, 8);
   arr.px = Math.max(ARR_MIN_PX_PER_BAR, avail / shown);
   const W = Math.round(shown * arr.px);
   const px = arr.px;
@@ -4217,14 +4286,94 @@ function arrRenderTimeline() {
       <div class="arr-lane">${blocks}
         <div class="arr-dropzone" style="left:${endX}px;width:${W - endX}px">+ drop a take here</div>
       </div>
+      ${segs.map((list, tr) => `<div class="at-lane" data-tr="${tr}" style="top:${AT_LANE_TOP + tr * AT_LANE_STEP}px">${
+        list.map(({ clip, a, b }) => `<div class="at-clip${arr.selClip === clip.id ? ' sel' : ''}" data-clip="${clip.id}"
+            data-a="${a}" data-b="${b}" style="left:${a / barS * px}px;width:${Math.max(2, (b - a) / barS * px)}px"
+            title="Recorded take on ${escHtml(songAudio(song).tracks[tr].name)} — click to select, Delete to remove"><canvas></canvas></div>`).join('')
+      }</div>`).join('')}
       <span class="arr-insert" id="arr-insert"></span>
       <span class="arr-start" id="arr-start" style="left:${startX}px" title="Play starts here — drag me"></span>
       <span class="arr-cursor" id="arr-cursor" style="left:${startX}px"></span>
     </div>`;
+  atDrawWaveforms(wrap, song);
   const missing = (song.sections || []).filter(s => !takesRead().find(t => t.id === s.takeId)).length;
   if (missing) wrap.insertAdjacentHTML('beforeend', `<div class="arr-note">${missing} section${missing > 1 ? 's use a deleted take and are' : ' uses a deleted take and is'} skipped.</div>`);
   arrUpdateClock(arr.startG);
 }
+
+// Lanes for the audio tracks sit under the drums lane; the channel strips on
+// the left line up with them (same top and step).
+const AT_LANE_TOP = 94, AT_LANE_STEP = 46;
+
+function atDrawWaveforms(wrap, song) {
+  const a = songAudio(song);
+  wrap.querySelectorAll('.at-clip').forEach(box => {
+    const clip = a.clips.find(c => c.id === box.dataset.clip);
+    const cache = clip && clipCache.get(clip.id);
+    const cv = box.querySelector('canvas');
+    if (!cache || !cv) return;
+    const w = Math.min(4000, Math.max(1, Math.round(box.clientWidth))), h = 40;
+    cv.width = w; cv.height = h;
+    const g = cv.getContext('2d');
+    g.fillStyle = 'rgba(0, 229, 255, 0.85)';
+    const s0 = (+box.dataset.a) - clipStartS(clip), s1 = (+box.dataset.b) - clipStartS(clip);
+    const pk = cache.peaks;
+    for (let x = 0; x < w; x++) {
+      const i0 = Math.floor((s0 + (s1 - s0) * x / w) * PEAKS_PER_S);
+      const i1 = Math.max(i0 + 1, Math.floor((s0 + (s1 - s0) * (x + 1) / w) * PEAKS_PER_S));
+      let m = 0;
+      for (let i = i0; i < i1 && i < pk.length; i++) if (pk[i] > m) m = pk[i];
+      const y = Math.max(1, Math.min(1, m * 1.2) * (h / 2 - 1));
+      g.fillRect(x, h / 2 - y, 1, y * 2);
+    }
+  });
+}
+
+function arrRenderHeads() {
+  const box = document.getElementById('arr-heads');
+  const song = songCurrent();
+  if (!song) { box.innerHTML = ''; return; }
+  const a = songAudio(song);
+  box.innerHTML = `<div class="at-head at-drums">Drums</div>` + a.tracks.map((t, i) => `
+    <div class="at-head" data-tr="${i}" style="top:${AT_LANE_TOP + i * AT_LANE_STEP}px">
+      <div class="at-row">
+        <input class="at-name" value="${escHtml(t.name)}" maxlength="16" title="Track name">
+        <button class="at-btn at-r${t.arm ? ' on' : ''}" data-act="arm" title="Arm for recording">R</button>
+        <button class="at-btn at-m${t.mute ? ' on' : ''}" data-act="mute" title="Mute">M</button>
+        <button class="at-btn at-s${t.solo ? ' on' : ''}" data-act="solo" title="Solo">S</button>
+      </div>
+      <div class="at-row">
+        <input type="range" class="at-vol" min="0" max="1.5" step="0.01" value="${t.vol}" title="Volume">
+        <input type="range" class="at-pan" min="-1" max="1" step="0.05" value="${t.pan}" title="Pan (double-click: centre)">
+        <select class="at-ch" title="Input channel">${[0, 1].map(c => `<option value="${c}"${(t.ch || 0) === c ? ' selected' : ''}>In ${c + 1}</option>`).join('')}</select>
+        <span class="at-meter" title="Input level"><i></i></span>
+      </div>
+    </div>`).join('');
+}
+function atUpdateLatencyUI() {
+  const el = document.getElementById('at-lat');
+  if (el) el.value = Math.round(recLatencyS() * 1000);
+}
+function arrRecordUI() {
+  const b = document.getElementById('arr-recaudio');
+  if (b) b.classList.toggle('recording', !!atIn.rec);
+}
+// Meters: driven by the capture callback's levels, while an input is open
+function atMeterLoop() {
+  if (!atIn.stream) { document.querySelectorAll('.at-meter i').forEach(i => { i.style.width = '0'; }); atMeterLoop.on = false; return; }
+  const song = songCurrent();
+  if (song) {
+    const a = songAudio(song);
+    document.querySelectorAll('.at-head[data-tr]').forEach(h => {
+      const t = a.tracks[+h.dataset.tr];
+      const lvl = t.arm ? atIn.levels[Math.min(t.ch || 0, 1)] : 0;
+      const bar = h.querySelector('.at-meter i');
+      if (bar) { bar.style.width = Math.min(100, lvl * 100) + '%'; bar.classList.toggle('clip', lvl > 0.98); }
+    });
+  }
+  requestAnimationFrame(atMeterLoop);
+}
+function atMeterStart() { if (!atMeterLoop.on) { atMeterLoop.on = true; requestAnimationFrame(atMeterLoop); } }
 
 function arrRenderInspector() {
   const box = document.getElementById('arr-inspector');
@@ -4386,8 +4535,9 @@ function bindArranger() {
   document.getElementById('arr-del').addEventListener('click', e => {
     e.currentTarget.blur();
     const song = songCurrent();
-    if (!song || !window.confirm(`Delete the song "${song.name}"? The takes it uses are kept.`)) return;
+    if (!song || !window.confirm(`Delete the song "${song.name}"? The takes it uses are kept; its recorded audio is deleted.`)) return;
     if (state.playing) stopPlaying();
+    songAudio(song).clips.forEach(c => { idbDel(c.id).catch(() => {}); clipCache.delete(c.id); });
     songsWrite(songsRead().filter(s => s.id !== song.id));
     arr.songId = null; arr.sel = null;
     arrRender();
@@ -4422,6 +4572,10 @@ function bindArranger() {
       arrRenderTimeline();
       return;
     }
+    const clipEl = e.target.closest('.at-clip');
+    arr.selClip = clipEl ? clipEl.dataset.clip : null;
+    wrap.querySelectorAll('.at-clip').forEach(c => c.classList.toggle('sel', c.dataset.clip === arr.selClip));
+    if (clipEl) { arr.sel = null; wrap.querySelectorAll('.arr-block.sel').forEach(b => b.classList.remove('sel')); arrRenderInspector(); return; }
     const block = e.target.closest('.arr-block');
     arr.sel = block ? +block.dataset.si : null;
     wrap.querySelectorAll('.arr-block').forEach(b => b.classList.toggle('sel', +b.dataset.si === arr.sel));
@@ -4551,7 +4705,11 @@ function bindArranger() {
     if (mod && k === 'v') { e.preventDefault(); if (arr.sel == null) { const s = songCurrent(); if (s && arr.clip) arrEdit(x => { x.sections.push(cloneSection(arr.clip)); arr.sel = x.sections.length - 1; }); } else arrAction('paste'); return; }
     if (mod && k === 'd') { e.preventDefault(); arrAction('dup'); return; }
     if (mod) return;
-    if (e.key === 'Delete' || e.key === 'Backspace') { if (arr.sel != null) { e.preventDefault(); arrAction('del'); } return; }
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (arr.selClip) { e.preventDefault(); atDeleteClip(arr.selClip); return; }
+      if (arr.sel != null) { e.preventDefault(); arrAction('del'); }
+      return;
+    }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       const song = songCurrent();
       if (!song || !song.sections.length) return;
@@ -4564,6 +4722,504 @@ function bindArranger() {
     }
   });
   window.addEventListener('resize', () => { if (arr.view === 'song') arrRenderTimeline(); });
+
+  // ---- audio tracks: channel strips ----
+  const heads = document.getElementById('arr-heads');
+  const withTrack = (el, fn) => {
+    const h = el.closest('.at-head[data-tr]');
+    const song = songCurrent();
+    if (!h || !song) return;
+    const a = songAudio(song);
+    fn(a.tracks[+h.dataset.tr], a, song);
+    songPut(song);
+    if (atNodes) atApplyMix(song, atNodes);
+  };
+  heads.addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    b.blur();
+    withTrack(b, (t, a) => {
+      if (b.dataset.act === 'arm') t.arm = !t.arm;
+      if (b.dataset.act === 'mute') t.mute = !t.mute;
+      if (b.dataset.act === 'solo') t.solo = !t.solo;
+      b.classList.toggle('on', !!t[b.dataset.act]);
+      if (b.dataset.act === 'arm') {
+        if (a.tracks.some(x => x.arm)) atOpenInput().then(ok => { if (ok) atMeterStart(); });
+        else if (!atIn.rec) atCloseInput();
+      }
+    });
+  });
+  heads.addEventListener('input', e => {
+    if (e.target.classList.contains('at-vol')) withTrack(e.target, t => { t.vol = +e.target.value; });
+    if (e.target.classList.contains('at-pan')) withTrack(e.target, t => { t.pan = +e.target.value; });
+  });
+  heads.addEventListener('dblclick', e => {
+    if (!e.target.classList.contains('at-pan')) return;
+    e.target.value = 0;
+    withTrack(e.target, t => { t.pan = 0; });
+  });
+  heads.addEventListener('change', e => {
+    if (e.target.classList.contains('at-name')) withTrack(e.target, t => { t.name = e.target.value.trim().slice(0, 16) || t.name; });
+    if (e.target.classList.contains('at-ch')) withTrack(e.target, t => { t.ch = +e.target.value; });
+    e.target.blur();
+  });
+  heads.addEventListener('keydown', e => { if (e.target.classList.contains('at-name') && e.key === 'Enter') e.target.blur(); });
+
+  document.getElementById('arr-recaudio').addEventListener('click', async e => {
+    e.currentTarget.blur();
+    if (atIn.rec) { stopPlaying(); return; }
+    const song = songCurrent();
+    if (!song) return;
+    if (!songAudio(song).tracks.some(t => t.arm)) { setPatternStatus('Arm a track first (R)'); setTimeout(() => setPatternStatus(''), 2000); return; }
+    if (state.playing) stopPlaying();
+    if (!(await atOpenInput())) return;
+    atMeterStart();
+    atRecordBegin();
+    arrRecordUI();
+    await startPlaying();
+    if (!state.playing) { atIn.rec = null; arrRecordUI(); }
+  });
+  document.getElementById('at-input').addEventListener('change', async e => {
+    atIn.deviceId = e.target.value || null;
+    e.target.blur();
+    if (atIn.stream && !atIn.rec) { atCloseInput(); if (await atOpenInput()) atMeterStart(); }
+  });
+  document.getElementById('at-lat').addEventListener('change', e => {
+    const v = parseInt(e.target.value);
+    if (!isNaN(v)) setRecLatencyMs(Math.max(0, Math.min(2000, v)));
+    e.target.blur();
+  });
+  document.getElementById('arr-export').addEventListener('click', e => { e.currentTarget.blur(); arrExportAll(); });
+}
+
+async function atDeleteClip(id) {
+  const song = songCurrent();
+  if (!song) return;
+  if (!window.confirm('Delete this recorded take? It cannot be undone.')) return;
+  if (state.playing) stopPlaying();
+  const a = songAudio(song);
+  a.clips = a.clips.filter(c => c.id !== id);
+  songPut(song);
+  clipCache.delete(id);
+  idbDel(id).catch(() => {});
+  arr.selClip = null;
+  arrRenderTimeline();
+}
+
+// ============================================================
+// AUDIO TRACKS — four mono tracks recorded over the song
+// ============================================================
+// Reference vocals or guitars, recorded while the song plays, kept aligned
+// with it, mixed with a small console, and exported with the drums for a
+// DAW. Each song carries its own track settings and a list of clips; the
+// audio itself lives in IndexedDB (localStorage holds a few MB at most).
+//
+// Alignment: a sample captured at audio-clock time t was played by the
+// musician against what they heard at t - L, L being the round trip
+// (output latency + input latency + this capture's buffer). The A/V
+// auto-calibration measures exactly that, with the same capture method
+// (ScriptProcessor 2048, playbackTime), and now stores it as the recording
+// latency. Without a calibration an estimate is used, adjustable by hand.
+//
+// A clip is anchored to the song step where its recording started (`at`)
+// plus an offset in seconds (`pos`); it does not stretch if the tempo moves.
+// A newer clip covers an older one on the same track where they overlap, so
+// re-recording a chorus replaces that chorus only.
+
+const AT_TRACKS = 4;
+const AT_CAPTURE_BUFFER = 2048;
+const IDB_NAME = 'groovygroova', IDB_STORE = 'clips';
+
+function idbOpen() {
+  if (idbOpen.p) return idbOpen.p;
+  idbOpen.p = new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return idbOpen.p;
+}
+async function idbDo(mode, fn) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, mode);
+    const req = fn(tx.objectStore(IDB_STORE));
+    tx.oncomplete = () => res(req && req.result);
+    tx.onerror = () => rej(tx.error);
+  });
+}
+const idbPut = (id, v) => idbDo('readwrite', s => s.put(v, id));
+const idbGet = id => idbDo('readonly', s => s.get(id));
+const idbDel = id => idbDo('readwrite', s => s.delete(id));
+
+// ---- song audio settings ----
+function songAudio(song) {
+  if (!song.audio) song.audio = { tracks: [], clips: [] };
+  const a = song.audio;
+  for (let i = a.tracks.length; i < AT_TRACKS; i++)
+    a.tracks.push({ name: `Track ${i + 1}`, vol: 0.8, pan: 0, mute: false, solo: false, arm: false, ch: 0 });
+  return a;
+}
+function trackGainValue(a, i) {
+  const t = a.tracks[i];
+  const anySolo = a.tracks.some(x => x.solo);
+  if (t.mute || (anySolo && !t.solo)) return 0;
+  return t.vol;
+}
+
+// ---- recording latency ----
+function recLatencyS() {
+  try {
+    const v = parseFloat(localStorage.getItem('groovygroova:rec-latency'));
+    if (!isNaN(v)) return v / 1000;
+  } catch (e) { /* ignore */ }
+  const c = audio();
+  return Math.min(c.outputLatency || c.baseLatency || 0.01, 0.5) + 2 * AT_CAPTURE_BUFFER / c.sampleRate;
+}
+function setRecLatencyMs(ms) {
+  try { localStorage.setItem('groovygroova:rec-latency', String(Math.round(ms))); } catch (e) { /* ignore */ }
+}
+
+// ---- decoded clips, in memory ----
+const clipCache = new Map();   // id -> { buf: AudioBuffer, peaks: Float32Array, sr }
+const PEAKS_PER_S = 100;
+function computePeaks(f32, sr) {
+  const hop = Math.max(1, Math.floor(sr / PEAKS_PER_S));
+  const out = new Float32Array(Math.ceil(f32.length / hop));
+  for (let i = 0; i < out.length; i++) {
+    let m = 0;
+    for (let j = i * hop, e = Math.min(f32.length, j + hop); j < e; j++) { const a = Math.abs(f32[j]); if (a > m) m = a; }
+    out[i] = m;
+  }
+  return out;
+}
+async function clipLoad(id) {
+  if (clipCache.has(id)) return clipCache.get(id);
+  const rec = await idbGet(id);
+  if (!rec) return null;
+  const i16 = new Int16Array(rec.pcm);
+  const f32 = new Float32Array(i16.length);
+  for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
+  const buf = audio().createBuffer(1, Math.max(1, f32.length), rec.sr);
+  buf.copyToChannel(f32, 0);
+  const entry = { buf, peaks: computePeaks(f32, rec.sr), sr: rec.sr };
+  clipCache.set(id, entry);
+  return entry;
+}
+async function songClipsLoad(song) {
+  const a = songAudio(song);
+  await Promise.all(a.clips.map(c => clipLoad(c.id).catch(() => null)));
+}
+
+// ---- where each clip sounds: newer clips cover older ones ----
+// Returns per track a list of { clip, a, b } in seconds from the song's start.
+function clipStartS(c) { return c.at * stepDuration() + (c.pos || 0); }
+function trackSegments(song) {
+  const a = songAudio(song);
+  const out = Array.from({ length: AT_TRACKS }, () => []);
+  for (let tr = 0; tr < AT_TRACKS; tr++) {
+    const clips = a.clips.filter(c => c.track === tr && clipCache.has(c.id));
+    clips.forEach((c, idx) => {
+      const s = clipStartS(c), e = s + clipCache.get(c.id).buf.duration;
+      let parts = [[s, e]];
+      clips.slice(idx + 1).forEach(n => {     // later clips win
+        const ns = clipStartS(n), ne = ns + clipCache.get(n.id).buf.duration;
+        parts = parts.flatMap(([x, y]) => (ne <= x || ns >= y) ? [[x, y]]
+          : [[x, Math.min(y, ns)], [Math.max(x, ne), y]].filter(([p, q]) => q - p > 0.001));
+      });
+      parts.forEach(([x, y]) => out[tr].push({ clip: c, a: x, b: y, s }));
+    });
+  }
+  return out;
+}
+
+// ---- playback graph ----
+let atNodes = null;     // per track { gain, pan } in the live context
+let atSources = [];
+function atGraph(c) {
+  const nodes = [];
+  for (let i = 0; i < AT_TRACKS; i++) {
+    const gain = c.createGain();
+    const pan = c.createStereoPanner ? c.createStereoPanner() : null;
+    if (pan) { gain.connect(pan); pan.connect(masterGain()); } else gain.connect(masterGain());
+    nodes.push({ gain, pan });
+  }
+  return nodes;
+}
+function atApplyMix(song, nodes) {
+  const a = songAudio(song);
+  nodes.forEach((n, i) => {
+    n.gain.gain.value = trackGainValue(a, i);
+    if (n.pan) n.pan.pan.value = a.tracks[i].pan;
+  });
+}
+// Schedule every clip of the song from song second `fromS`, the song's first
+// step sounding at context time `t0`.
+function atSchedule(song, c, nodes, t0, fromS, sources) {
+  trackSegments(song).forEach((segs, tr) => segs.forEach(({ clip, a, b, s }) => {
+    if (b <= fromS) return;
+    const startAt = Math.max(a, fromS);
+    const src = c.createBufferSource();
+    src.buffer = clipCache.get(clip.id).buf;
+    src.connect(nodes[tr].gain);
+    src.start(t0 + (startAt - fromS), startAt - s, b - startAt);
+    sources.push(src);
+  }));
+}
+function atStartPlayback(t0) {
+  const song = songCurrent();
+  if (!song) return;
+  const c = audio();
+  if (!atNodes || atNodes.ctx !== c) { atNodes = atGraph(c); atNodes.ctx = c; }
+  atApplyMix(song, atNodes);
+  atStopPlayback();
+  atSchedule(song, c, atNodes, t0, arr.startG * stepDuration(), atSources);
+}
+function atStopPlayback() {
+  atSources.forEach(s => { try { s.stop(); } catch (e) { /* not started */ } });
+  atSources = [];
+}
+
+// ---- input and capture ----
+const atIn = { stream: null, src: null, proc: null, sink: null, channels: 1,
+               levels: [0, 0], rec: null, deviceId: null };
+async function atOpenInput() {
+  if (atIn.stream) return true;
+  const c = audio();
+  if (c.state === 'suspended') { try { await c.resume(); } catch (e) { /* ignore */ } }
+  try {
+    const audioC = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 } };
+    if (atIn.deviceId) audioC.deviceId = { exact: atIn.deviceId };
+    atIn.stream = await navigator.mediaDevices.getUserMedia({ audio: audioC });
+  } catch (e) {
+    setPatternStatus('No audio input (' + (e.name || e.message) + '). The page must be on https or localhost, and the browser allowed to use the microphone.');
+    return false;
+  }
+  atIn.src = c.createMediaStreamSource(atIn.stream);
+  atIn.channels = Math.max(1, Math.min(2, atIn.src.channelCount || 1));
+  atIn.proc = c.createScriptProcessor(AT_CAPTURE_BUFFER, 2, 1);
+  atIn.sink = c.createGain(); atIn.sink.gain.value = 0;
+  atIn.src.connect(atIn.proc); atIn.proc.connect(atIn.sink); atIn.sink.connect(c.destination);
+  atIn.proc.onaudioprocess = ev => {
+    const ib = ev.inputBuffer;
+    const chs = [ib.getChannelData(0), ib.numberOfChannels > 1 ? ib.getChannelData(1) : ib.getChannelData(0)];
+    chs.forEach((d, k) => { let m = 0; for (let i = 0; i < d.length; i += 4) { const v = Math.abs(d[i]); if (v > m) m = v; } atIn.levels[k] = Math.max(m, atIn.levels[k] * 0.85); });
+    if (atIn.rec) {
+      const t = (ev.playbackTime !== undefined) ? ev.playbackTime : audio().currentTime;
+      if (atIn.rec.t0 == null) atIn.rec.t0 = t;
+      atIn.rec.chunks.push([new Float32Array(chs[0]), new Float32Array(chs[1])]);
+    }
+  };
+  arrPopulateInputs();
+  return true;
+}
+function atCloseInput() {
+  if (!atIn.stream) return;
+  try { atIn.proc.disconnect(); atIn.src.disconnect(); atIn.sink.disconnect(); } catch (e) { /* ignore */ }
+  atIn.stream.getTracks().forEach(t => t.stop());
+  atIn.stream = null; atIn.levels = [0, 0];
+}
+async function arrPopulateInputs() {
+  const sel = document.getElementById('at-input');
+  if (!sel || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+  const cur = atIn.stream ? (atIn.stream.getAudioTracks()[0].getSettings().deviceId) : atIn.deviceId;
+  sel.innerHTML = devs.length ? devs.map((d, i) => `<option value="${d.deviceId}"${d.deviceId === cur ? ' selected' : ''}>${escHtml(d.label || 'Input ' + (i + 1))}</option>`).join('')
+    : '<option value="">— no input —</option>';
+}
+
+// Recording a take of audio: starts with the song, stops with it.
+function atRecordBegin() {
+  atIn.rec = { t0: null, chunks: [], songT0: null, startG: arr.startG };
+}
+async function atRecordEnd() {
+  const rec = atIn.rec;
+  atIn.rec = null;
+  const song = songCurrent();
+  if (!rec || !song || rec.songT0 == null || !rec.chunks.length) return;
+  const a = songAudio(song);
+  const armed = a.tracks.map((t, i) => t.arm ? i : -1).filter(i => i >= 0);
+  if (!armed.length) return;
+  const sr = audio().sampleRate;
+  const n = rec.chunks.reduce((s, c) => s + c[0].length, 0);
+  // Musical position of the first captured sample, relative to the step the
+  // recording started on: drop what came before it (count-in, pre-roll).
+  const rel0 = rec.t0 - recLatencyS() - rec.songT0;
+  const skip = Math.max(0, Math.round(-rel0 * sr));
+  const pos = Math.max(0, rel0);
+  if (skip >= n) return;
+  for (const tr of armed) {
+    const ch = Math.min(a.tracks[tr].ch || 0, 1);
+    const f32 = new Float32Array(n - skip);
+    let w = 0, r = 0;
+    for (const c of rec.chunks) {
+      const d = c[ch];
+      for (let i = 0; i < d.length; i++, r++) if (r >= skip) f32[w++] = d[i];
+    }
+    const i16 = new Int16Array(f32.length);
+    for (let i = 0; i < f32.length; i++) i16[i] = Math.max(-32768, Math.min(32767, Math.round(f32[i] * 32767)));
+    const id = uid('c');
+    await idbPut(id, { sr, pcm: i16.buffer });
+    const buf = audio().createBuffer(1, Math.max(1, f32.length), sr);
+    buf.copyToChannel(f32, 0);
+    clipCache.set(id, { buf, peaks: computePeaks(f32, sr), sr });
+    a.clips.push({ id, track: tr, at: rec.startG, pos, created: Date.now() });
+  }
+  songPut(song);
+  arrRenderTimeline();
+  setPatternStatus(`Recorded ${armed.length} track${armed.length > 1 ? 's' : ''}`);
+  setTimeout(() => setPatternStatus(''), 1800);
+}
+
+// ---- WAV and ZIP ----
+function wavBytes(channels, sr) {
+  const nch = channels.length, n = channels[0].length;
+  const data = new DataView(new ArrayBuffer(44 + n * nch * 2));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) data.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); data.setUint32(4, 36 + n * nch * 2, true); str(8, 'WAVE');
+  str(12, 'fmt '); data.setUint32(16, 16, true); data.setUint16(20, 1, true); data.setUint16(22, nch, true);
+  data.setUint32(24, sr, true); data.setUint32(28, sr * nch * 2, true); data.setUint16(32, nch * 2, true); data.setUint16(34, 16, true);
+  str(36, 'data'); data.setUint32(40, n * nch * 2, true);
+  let o = 44;
+  for (let i = 0; i < n; i++) for (let c = 0; c < nch; c++) {
+    const v = Math.max(-1, Math.min(1, channels[c][i]));
+    data.setInt16(o, v < 0 ? v * 32768 : v * 32767, true); o += 2;
+  }
+  return new Uint8Array(data.buffer);
+}
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+// ZIP, stored (no compression): WAVs barely compress and this keeps it small.
+function zipBlob(files) {
+  const parts = [], central = [];
+  let offset = 0;
+  const enc = new TextEncoder();
+  files.forEach(({ name, data }) => {
+    const nm = enc.encode(name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(8, 0, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+    h.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(h.buffer), nm, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true);
+    c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+    c.setUint16(28, nm.length, true); c.setUint32(42, offset, true);
+    central.push(new Uint8Array(c.buffer), nm);
+    offset += 30 + nm.length + data.length;
+  });
+  const csize = central.reduce((s, p) => s + p.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, csize, true); e.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+
+// ---- export: drums, each track, the mix, the MIDI ----
+// The drums are rendered by running the song headless through the real
+// engine into an OfflineAudioContext, so they sound exactly as played.
+// Offline renders start EXPORT_PREROLL_S in, then that much is cut back off:
+// a hit pushed early by a Feel preset lands before bar 1, and an AudioParam
+// refuses a negative time (it threw RangeError and aborted the export).
+const EXPORT_PREROLL_S = 0.1;
+async function arrRenderDrums(c, song) {
+  const realCtx = ctx;
+  const startG = arr.startG;
+  ctx = c;
+  arr.simulating = true; arr.startG = 0;
+  try {
+    if (!arrStart()) return 0;
+    const sd = stepDuration();
+    let t = EXPORT_PREROLL_S, step = 0;
+    while (arrBeforeStep(t)) {
+      state.step = step;
+      dynamicsDriftAdvance();
+      currentStepPos = step;
+      scheduleStep(step, t + sd * swingOffsetSteps(step));
+      currentStepPos = null;
+      arr.g++;
+      t += sd;
+      step = (step + 1) % STEPS;
+    }
+    return t;
+  } finally {
+    arrOnStop();
+    arr.simulating = false;
+    arr.startG = startG;
+    hatRinging = null; voiceBus = null;
+    ctx = realCtx;
+  }
+}
+async function arrExportAll() {
+  const song = songCurrent();
+  if (!song) return;
+  if (state.playing) stopPlaying();
+  const snap = engineSnapshot();
+  setPatternStatus('Rendering the song…');
+  try {
+    await songClipsLoad(song);
+    const sr = audio().sampleRate;
+    const { total } = arrBuildTimeline(song);
+    const tail = 3;
+    const len = Math.ceil((total * stepDuration() + tail) * sr);
+    const pre = Math.round(EXPORT_PREROLL_S * sr);
+    const cut = buf => [0, 1].map(ch => buf.getChannelData(ch).subarray(pre, pre + len));
+    const files = [];
+    const base = song.name.replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') || 'song';
+    // drums alone
+    const dc = new OfflineAudioContext(2, len + pre, sr);
+    await arrRenderDrums(dc, song);
+    const drums = await dc.startRendering();
+    files.push({ name: `${base}/drums.wav`, data: wavBytes(cut(drums), sr) });
+    // each track, raw (no fader, no pan), full length from bar 1
+    const a = songAudio(song);
+    const segs = trackSegments(song);
+    for (let tr = 0; tr < AT_TRACKS; tr++) {
+      if (!segs[tr].length) continue;
+      const out = new Float32Array(len);
+      segs[tr].forEach(({ clip, a: x, b: y, s }) => {
+        const d = clipCache.get(clip.id).buf.getChannelData(0);
+        const i0 = Math.round(x * sr), i1 = Math.min(len, Math.round(y * sr)), off = Math.round(s * sr);
+        for (let i = i0; i < i1; i++) { const v = d[i - off]; if (v !== undefined) out[i] = v; }
+      });
+      const nm = (a.tracks[tr].name || `Track ${tr + 1}`).replace(/[^\w\-]+/g, '-');
+      files.push({ name: `${base}/${tr + 1}-${nm}.wav`, data: wavBytes([out], sr) });
+    }
+    // the mix: drums plus tracks through their faders and pans
+    const mc = new OfflineAudioContext(2, len + pre, sr);
+    await arrRenderDrums(mc, song);
+    const realCtx = ctx; ctx = mc;
+    try {
+      const nodes = atGraph(mc);
+      atApplyMix(song, nodes);
+      const tmp = new Map();
+      for (const c of a.clips) {      // buffers must belong to no context in particular: copy them
+        const src = clipCache.get(c.id);
+        if (src && !tmp.has(c.id)) { const b = mc.createBuffer(1, src.buf.length, src.buf.sampleRate); b.copyToChannel(src.buf.getChannelData(0), 0); tmp.set(c.id, b); }
+      }
+      trackSegments(song).forEach((list, tr) => list.forEach(({ clip, a: x, b: y, s }) => {
+        const b = mc.createBufferSource(); b.buffer = tmp.get(clip.id) || clipCache.get(clip.id).buf;
+        b.connect(nodes[tr].gain); b.start(EXPORT_PREROLL_S + x, x - s, y - x);
+      }));
+    } finally { ctx = realCtx; }
+    const mix = await mc.startRendering();
+    files.push({ name: `${base}/mix.wav`, data: wavBytes(cut(mix), sr) });
+    files.push({ name: `${base}/drums.mid`, data: bytesToU8(arrMidiBytes(song)) });
+    const blob = zipBlob(files);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = base + '.zip';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setPatternStatus(`Exported ${files.length} files`);
+    setTimeout(() => setPatternStatus(''), 2000);
+  } catch (e) {
+    console.error(e);
+    setPatternStatus('Export failed: ' + e.message);
+  } finally {
+    engineRestore(snap);
+  }
 }
 
 // ============================================================
@@ -5052,6 +5708,8 @@ async function startAutoCalibration(deviceId) {
     const reportedLatency = Math.min(c.outputLatency || c.baseLatency || 0, 0.5);
     const toRawMs = pth => Math.round((pth.d - reportedLatency) * 1000);
     const applyPath = (pth, prefix) => {
+      setRecLatencyMs(pth.d * 1000);     // the round trip, for audio recordings
+      if (typeof atUpdateLatencyUI === 'function') atUpdateLatencyUI();
       const rawMs = toRawMs(pth);
       _lastAutoCalibRawMs = rawMs;
       _lastAutoCalibAt = Date.now();

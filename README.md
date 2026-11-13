@@ -71,6 +71,13 @@ Any articulation a sampled kit lacks falls back to a matching synth kit, so ever
 - The take replays **identically**: the same hits as when it was recorded, Chaos, Ghost pad and Broken included (verified hit for hit). Tempo and kit apply to the whole song.
 - **♪ MIDI** downloads the whole song as one MIDI file, pad moves included. Songs are saved in the browser, like setups and takes.
 
+### Audio tracks
+- **Four mono tracks** under the drums in the Song view, for reference vocals or guitars. Each has a small channel strip: name, **R** (arm), **M** (mute), **S** (solo), volume, pan (double-click to centre), input channel (In 1 / In 2) and a level meter.
+- **Recording**: arm one or more tracks, choose the input, press **● Rec audio**. The song plays from the start marker (with the count-in if it is on) and the armed tracks record until you stop or the song ends. A new take covers what was on the track only where it overlaps, so you can redo just a chorus. Click a take to select it, Delete to remove it.
+- **Alignment**: the recording is shifted back by the round-trip latency of your setup. The **A/V auto-calibration** (Setup tab) measures it and fills the **Lat** field; adjust it by hand if takes sound early or late. There is no software monitoring: listen to yourself through your interface or your instrument.
+- The audio is stored in the browser's IndexedDB, with the song. It needs a microphone permission, which browsers only give on `https://` or `localhost`.
+- **⤓ Export audio** downloads a ZIP for a DAW, everything starting at bar 1: `drums.wav` (the drums rendered exactly as played), one WAV per recorded track (raw, before fader and pan), `mix.wav` (drums plus tracks through the console) and `drums.mid`.
+
 ### Setup bank
 - **Save** the grid together with every groove setting: tempo, swing, Feel preset and intensity, Dynamics, Chaos, the kit, per-track volume and mutes, and which live pads are engaged. Press **+**, and a field opens pre-filled with a suggested name (`Funk 96`, made unique) — type over it or press Enter to keep it.
 - **Recall** any entry from the dropdown below. It honours the **Now / Next bar** switch, so an entry can land on a bar line instead of mid-phrase.

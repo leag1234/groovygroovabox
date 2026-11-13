@@ -115,7 +115,8 @@ articulation. `GM_MAP` maps (track, articulation) to General MIDI.
 
 **Persistence**, all in `localStorage` under `groovygroova:`:
 `bank` (setups), `takes`, `av-offset`, `display-comp`, `feel-mode`,
-`feel-intensity`, `humanize`, `chaos`, `midi-mappings`, `songs`. (`humanize` and
+`feel-intensity`, `humanize`, `chaos`, `midi-mappings`, `songs`, `rec-latency`;
+audio clips in IndexedDB. (`humanize` and
 `chaos` are purged at load, not restored. `state.humanize` is now the
 **Dynamics** slider; the name was kept so saved setups recall it.)
 
@@ -328,6 +329,23 @@ pattern, shades by recording order; takes now store `style`, older ones are
 matched by name), a free drop zone after the last block plus a white
 insertion line while dragging, a draggable start marker and a ⏮ button.
 
+**Audio tracks** (`AT_*`, `atIn`, `atRecordEnd`, `trackSegments`,
+`arrExportAll`). Four mono tracks per song (`song.audio.tracks`, `.clips`),
+PCM in IndexedDB (`groovygroova` / `clips`, Int16). Capture is a
+ScriptProcessor(2048) timestamped with `playbackTime` — the same method the
+A/V auto-calibration uses, so its measured round trip (`pth.d`, now stored
+as `groovygroova:rec-latency`) is exactly the shift to apply. A clip sits at
+`at` (song step where recording started) + `pos` seconds; samples captured
+before the song's first step (count-in) are dropped. Newer clips cover older
+ones where they overlap (`trackSegments`). Verified: a click played at song
+second 2.000 with 100 ms of latency and 0.5 s of pre-roll lands at 2.0000 in
+the clip and in the exported WAV; a second take over 3–4 s splits the first
+into 0–3 / 4–end. Export renders the drums offline through the real engine
+(`arrRenderDrums`, ctx swapped to an OfflineAudioContext) with 100 ms of
+pre-roll cut back off — without it a hit pushed early by a Feel preset gave
+a negative AudioParam time and aborted the render. ZIP written by hand
+(stored, CRC32). No software monitoring, on purpose (latency).
+
 **The Ghost pad is locked** (it was known gap 1): `rollChaosPlan` also rolls
 `ghostMasks`, one per bar, replayed with the plan, instead of a 60 % coin on
 every hit. Without it no song could replay the same way twice.
@@ -396,11 +414,14 @@ I O            intro / outro
 
 ## 5. Open items
 
-**Song mode — built (2026-11-13), first version.** Gaël's brief: a second
-view where takes recorded live are laid end to end into a whole song, with
-the live pads usable afterwards (a break, a syncope…) and recorded into the
-song, and **no note-by-note editing** there. Next on his list: recording a
-reference vocal or guitar as audio, synced, exportable. See "Song view" in §3.
+**Song mode — built (2026-11-13).** Gaël's brief: a second view where takes
+recorded live are laid end to end into a whole song, with the live pads
+usable afterwards (a break, a syncope…) and recorded into the song, and
+**no note-by-note editing** there; then four mono audio tracks with a small
+classic console (volume, pan, mute, solo, arm), recorded in sync, exported
+for a DAW. Both built; see "Song view" and "Audio tracks" in §3. The audio
+recording was verified with a synthetic signal (alignment to the sample,
+covering, export), **not yet with a real microphone**.
 
 **Known gaps, in rough priority order:**
 
