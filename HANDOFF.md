@@ -355,6 +355,13 @@ the count-in is its own setting (`arr.countInBars`, 0–2, default 2, stored
 as `song-countin`), counted 1-2-3-4 with the one accented; `arr.rec` (pad
 moves recorded) is on by default — both at Gaël's request.
 
+**Recording is armed, then played** (`arr.recArmed`): Rec audio arms,
+Play starts the take (`startPlaying` calls `atRecordBegin` when armed), the
+stop saves it and disarms. **The count-in numbers run on the audio clock**
+(`countdownRun`), with the playhead's latency and A/V offset: on timers they
+showed when each click was scheduled, before it was heard. Measured with a
+200 ms offset: each number 1–31 ms after its click is heard (a frame or two).
+
 **The Ghost pad is locked** (it was known gap 1): `rollChaosPlan` also rolls
 `ghostMasks`, one per bar, replayed with the plan, instead of a 60 % coin on
 every hit. Without it no song could replay the same way twice.

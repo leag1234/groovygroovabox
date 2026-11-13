@@ -1584,6 +1584,7 @@
   .at-clip canvas { display: block; width: 100%; height: 40px; }
   .at-clip.sel { box-shadow: 0 0 0 2px #fff inset; }
   #arr-recaudio.recording { color: #fff; background: var(--red); border-color: var(--red); animation: takepulse 1s ease-in-out infinite; }
+  #arr-recaudio.armed { color: var(--red); border-color: var(--red); animation: takepulse 1.6s ease-in-out infinite; }
   #at-input { max-width: 170px; font-size: 9px; }
   .arr-lat { font-size: 9px; color: var(--ink-faint); display: flex; align-items: center; gap: 4px; }
   #at-lat { width: 52px; padding: 3px 4px; font-family: inherit; font-size: 10px; color: var(--ink); background: #000; border: 1px solid var(--line-2); border-radius: 2px; }
@@ -3941,7 +3942,7 @@ function arrOnStop() {
   if (!arr.simulating) {
     atStopPlayback();
     setDrumBus(ctx, 1);          // the live view never inherits a song's solo
-    if (atIn.rec) atRecordEnd();
+    if (atIn.rec) { atRecordEnd(); arr.recArmed = false; }
     arrRecordUI();
     arrSyncPads();
     document.querySelectorAll('.pad.momentary').forEach(p => p.classList.remove('holding'));
@@ -4160,6 +4161,7 @@ function arrSetView(view) {
     arrRender();
   } else {
     arr.view = 'live';
+    arr.recArmed = false;
     atCloseInput();
     setDrumBus(ctx, 1);
     if (arr.liveSnap) engineRestore(arr.liveSnap);
@@ -4392,7 +4394,9 @@ function atUpdateLatencyUI() {
 }
 function arrRecordUI() {
   const b = document.getElementById('arr-recaudio');
-  if (b) b.classList.toggle('recording', !!atIn.rec);
+  if (!b) return;
+  b.classList.toggle('recording', !!atIn.rec);
+  b.classList.toggle('armed', !atIn.rec && !!arr.recArmed);
 }
 // Meters: driven by the capture callback's levels, while an input is open
 function atMeterLoop() {
@@ -4819,19 +4823,22 @@ function bindArranger() {
   });
   heads.addEventListener('keydown', e => { if (e.target.classList.contains('at-name') && e.key === 'Enter') e.target.blur(); });
 
+  // Rec audio arms the recording; Play (button or Space) starts it, after the
+  // count-in. While recording, it stops. A take disarms it, so the next Play
+  // cannot record over the take by accident.
   document.getElementById('arr-recaudio').addEventListener('click', async e => {
     e.currentTarget.blur();
     if (atIn.rec) { stopPlaying(); return; }
+    if (arr.recArmed) { arr.recArmed = false; arrRecordUI(); return; }
     const song = songCurrent();
     if (!song) return;
     if (!songAudio(song).tracks.some(t => t.arm)) { setPatternStatus('Arm a track first (R)'); setTimeout(() => setPatternStatus(''), 2000); return; }
-    if (state.playing) stopPlaying();
     if (!(await atOpenInput())) return;
     atMeterStart();
-    atRecordBegin();
+    arr.recArmed = true;
     arrRecordUI();
-    await startPlaying();
-    if (!state.playing) { atIn.rec = null; arrRecordUI(); }
+    setPatternStatus(state.playing ? 'Recording armed — stop, then Play to record' : 'Recording armed — press Play');
+    setTimeout(() => setPatternStatus(''), 2500);
   });
   document.getElementById('at-input').addEventListener('change', async e => {
     atIn.deviceId = e.target.value || null;
@@ -7930,6 +7937,12 @@ async function startPlaying() {
 
   if (state.playing) return;
   if (arr.view === 'song' && !arrStart()) return;
+  // Song view, recording armed: this Play records the armed tracks
+  if (arr.view === 'song' && arr.recArmed) {
+    const song = songCurrent();
+    if (atIn.stream && song && songAudio(song).tracks.some(t => t.arm)) atRecordBegin();
+    arrRecordUI();
+  }
 
   state.step = 0;
   state.bar = 1;
@@ -7958,16 +7971,17 @@ async function startPlaying() {
   const countBeats = songCount ? arr.countInBars * 4 : (state.countIn ? 4 : 0);
   if (countBeats) {
     const countInStart = ctx.currentTime + grooveStartDelay;
+    const beats = [];
     for (let i = 0; i < countBeats; i++) {
       const t = countInStart + i * beatDuration;
       playClick(t, songCount ? i % 4 === 0 : true);
-      // Visual count
-      const idx = songCount ? (i % 4) + 1 : countBeats - i;
-      const delayMs = (t - ctx.currentTime) * 1000;
-      setTimeout(() => { if (state.playing) showCountdown(idx); }, Math.max(0, delayMs));
+      beats.push({ t, n: songCount ? (i % 4) + 1 : countBeats - i });
     }
-    // Hide overlay after the last beat
-    setTimeout(() => hideCountdown(), (grooveStartDelay + countBeats * beatDuration) * 1000);
+    // The numbers follow the audio clock with the same latency and A/V
+    // offset as the playhead. A plain timer showed each number when its
+    // click was SCHEDULED, which is earlier than when it is HEARD, by the
+    // output latency (a lot on Bluetooth headphones).
+    countdownRun(beats, countInStart + countBeats * beatDuration);
 
     // Groove starts after the count
     nextStepTime = countInStart + countBeats * beatDuration;
@@ -8062,6 +8076,22 @@ function showCountdown(n) {
 
 function hideCountdown() {
   document.getElementById('countdown').classList.remove('active');
+  countdownRun.beats = null;
+}
+function countdownRun(beats, endT) {
+  countdownRun.beats = beats;
+  let shown = -1;
+  const loop = () => {
+    if (!countdownRun.beats || countdownRun.beats !== beats || !state.playing) return;
+    const latency = Math.min(ctx.outputLatency || ctx.baseLatency || 0, 0.5);
+    const heard = ctx.currentTime - latency - (state.avOffsetMs || 0) / 1000;
+    if (heard >= endT) { hideCountdown(); return; }
+    let idx = -1;
+    for (let i = 0; i < beats.length; i++) if (beats[i].t <= heard) idx = i;
+    if (idx >= 0 && idx !== shown) { shown = idx; showCountdown(beats[idx].n); }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
 }
 
 function updateRecStatus(cls, text) {
