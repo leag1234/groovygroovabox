@@ -1600,6 +1600,7 @@
   .danger-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
 
   .at-livecv { position: absolute; left: 0; top: 1px; width: 100%; height: 40px; pointer-events: none; }
+  .av-diag { margin-top: 6px; font-size: 9px; color: var(--ink-faint); letter-spacing: 0.04em; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -1966,6 +1967,7 @@
               <input type="range" class="slider" id="avoffset" min="-500" max="1500" value="0">
               <span class="knob-val" id="avoffset-val">0ms</span>
             </div>
+            <div class="av-diag" id="av-diag" title="What the browser reports as its output latency, and the total delay applied to the playhead and the count-in (reported latency + A/V)."></div>
           </div>
           <button class="btn midi-open-btn" id="autocalibrate-av" style="margin-top:8px" title="Fully automatic: plays 5 clicks and listens to them through your microphone to measure the real output latency. Requires mic permission and a quiet room. Speakers only (not headphones).">◉ Auto-calibrate (mic)</button>
           <button class="btn midi-open-btn" id="calibrate-av" style="margin-top:6px" title="Manual fallback: reaction-time test (tap on flashes, then on clicks). Use if the mic is unavailable or you are on headphones.">Manual calibrate (tap)</button>
@@ -8058,6 +8060,18 @@ function showCountdown(n) {
   void num.offsetWidth;
   num.style.animation = '';
 }
+
+// Diagnostic under the A/V slider: what the browser reports, and the total
+// delay the visuals use. If the visuals lag the sound, this says which part
+// is too big. Refreshed twice a second.
+setInterval(() => {
+  const el = document.getElementById('av-diag');
+  if (!el || !ctx) return;
+  const out = ctx.outputLatency, base = ctx.baseLatency;
+  const used = Math.min(out || base || 0, 0.5);
+  el.textContent = `Browser latency: ${out != null ? Math.round(out * 1000) + ' ms' : 'n/a'}` +
+    `${base != null ? ` (base ${Math.round(base * 1000)})` : ''} · visuals delayed ${Math.round((used + (state.avOffsetMs || 0) / 1000) * 1000)} ms`;
+}, 500);
 
 function hideCountdown() {
   document.getElementById('countdown').classList.remove('active');
