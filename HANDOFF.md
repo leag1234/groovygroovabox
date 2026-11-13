@@ -5,7 +5,7 @@ the code: several decisions here look arbitrary and are not, and a few of them
 cost real work to arrive at.
 
 **Repository:** https://github.com/leag1234/groovygroovabox
-**State at handoff:** `d3053e1` on `main`, working tree clean, local == remote.
+**State at handoff:** `main` == `v1.3.0` (2026-11-13), working tree clean, local == remote.
 **Author / owner:** Gaël Duval (GitHub `leag1234`). Concept his, since May 2026.
 
 ---
@@ -473,13 +473,15 @@ from the repo as `text/plain` — the raw link displays 10 MB of source instead 
 downloading. The release asset is served with `Content-Disposition: attachment`.
 
 ```
-v1.2.0 -> f725e95   latest
+v1.3.0 -> main @ 2026-11-13   latest (groove, kits, Song view, audio tracks)
+v1.2.0 -> f725e95
 v1.1.0 -> e1b0770
 v1.0.0 -> 1db0941
 ```
 
-**`v1.2.0` is behind `main`.** It predates the rhythm library rework
-(`61fc8ef`) and the relaunch fix (`d3053e1`). A `v1.3.0` is owed.
+The token in `~/.ggb-release-token` was also used, at Gaël's request, as a
+one-shot git credential helper for `git push` (never written to the remote
+URL or the git config). It still works as of v1.3.0.
 
 Publishing needs a fine-grained token (Contents: read and write, that repo
 only) that **Gaël creates**; there is no `gh` CLI and no stored credential. The
