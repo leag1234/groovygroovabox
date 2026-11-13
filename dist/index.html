@@ -692,11 +692,12 @@
   .midi-unbind-btn:hover { color: var(--red); border-color: var(--red); }
   .midi-unbind-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
+  /* The count shows over the interface without hiding it: no backdrop, a
+     big translucent number the eye catches, clicks pass through. */
   .countdown-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(8px);
+    background: transparent;
     display: none;
     align-items: center;
     justify-content: center;
@@ -707,8 +708,8 @@
   .countdown-number {
     font-family: 'Major Mono Display', monospace;
     font-size: 200px;
-    color: var(--accent);
-    text-shadow: 0 0 60px rgba(255,87,34,0.5);
+    color: rgba(255, 87, 34, 0.42);
+    text-shadow: 0 0 40px rgba(255,87,34,0.25);
     animation: countdown-pulse 0.5s ease-out;
   }
   @keyframes countdown-pulse {
@@ -1587,6 +1588,15 @@
   .arr-lat { font-size: 9px; color: var(--ink-faint); display: flex; align-items: center; gap: 4px; }
   #at-lat { width: 52px; padding: 3px 4px; font-family: inherit; font-size: 10px; color: var(--ink); background: #000; border: 1px solid var(--line-2); border-radius: 2px; }
   @media (max-width: 760px) { .arr-heads { width: 150px; } .at-vol { width: 40px; } .at-pan { width: 28px; } }
+
+  .arr-seg { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: 2px; overflow: hidden; }
+  .arr-seg-lbl { font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-faint); padding: 0 6px; }
+  .arr-seg button { padding: 4px 7px; font-family: inherit; font-size: 9px; color: var(--ink-dim); background: #000; border: none; border-left: 1px solid var(--line-2); cursor: pointer; }
+  .arr-seg button.on { color: #000; background: var(--accent); }
+  .at-x { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; line-height: 14px; text-align: center;
+          font-size: 9px; color: #fff; background: rgba(255,48,48,0.85); border-radius: 2px; display: none; }
+  .at-clip:hover .at-x, .at-clip.sel .at-x { display: block; }
+  .danger-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
 </style>
 </head>
 <body>
@@ -1754,9 +1764,9 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
       <button class="bank-btn arr-small" id="arr-midi" title="Download the whole song as a MIDI file">♪ MIDI</button>
       <button class="bank-btn arr-small" id="arr-export" title="Download a ZIP: drums.wav, one WAV per audio track, mix.wav and drums.mid, all from bar 1, ready for a DAW">⤓ Export audio</button>
       <span class="arr-sep"></span>
-      <select id="arr-countin" title="Clicks before the song starts, to come in on time">
-        <option value="0">No count-in</option><option value="1">Count-in 1 bar</option><option value="2">Count-in 2 bars</option>
-      </select>
+      <span class="arr-seg" id="arr-countin" title="Clicks before the song starts (Play and Rec audio), to come in on time">
+        <span class="arr-seg-lbl">Count-in</span><button data-v="0">Off</button><button data-v="1">1 bar</button><button data-v="2">2 bars</button>
+      </span>
       <button class="bank-btn arr-small arr-recaudio" id="arr-recaudio" title="Record the armed audio tracks while the song plays from the start marker">● Rec audio</button>
       <select id="at-input" title="Audio input"><option value="">Input…</option></select>
       <label class="arr-lat" title="Recording latency: how late a recorded sound arrives. Measured by the A/V auto-calibration (Setup tab); adjust by hand if takes sound early or late.">Lat <input type="number" id="at-lat" min="0" max="2000" step="1"> ms</label>
@@ -4313,7 +4323,7 @@ function arrRenderTimeline() {
       ${segs.map((list, tr) => `<div class="at-lane" data-tr="${tr}" style="top:${AT_LANE_TOP + tr * AT_LANE_STEP}px">${
         list.map(({ clip, a, b }) => `<div class="at-clip${arr.selClip === clip.id ? ' sel' : ''}" data-clip="${clip.id}"
             data-a="${a}" data-b="${b}" style="left:${a / barS * px}px;width:${Math.max(2, (b - a) / barS * px)}px"
-            title="Recorded take on ${escHtml(songAudio(song).tracks[tr].name)} — click to select, Delete to remove"><canvas></canvas></div>`).join('')
+            title="Recorded take on ${escHtml(songAudio(song).tracks[tr].name)} — click to select, ✕ or Delete to remove"><canvas></canvas><span class="at-x" title="Delete this take">✕</span></div>`).join('')
       }</div>`).join('')}
       <span class="arr-insert" id="arr-insert"></span>
       <span class="arr-start" id="arr-start" style="left:${startX}px" title="Play starts here — drag me"></span>
@@ -4402,6 +4412,16 @@ function atMeterStart() { if (!atMeterLoop.on) { atMeterLoop.on = true; requestA
 function arrRenderInspector() {
   const box = document.getElementById('arr-inspector');
   const song = songCurrent();
+  const clip = song && arr.selClip ? songAudio(song).clips.find(c => c.id === arr.selClip) : null;
+  if (clip) {
+    const cache = clipCache.get(clip.id);
+    const t = songAudio(song).tracks[clip.track];
+    const startBar = clipStartS(clip) / (STEPS * stepDuration()) + 1;
+    box.innerHTML = `<span class="arr-dot" style="--c:var(--cyan)"></span>
+      <span class="arr-ilbl">Audio take · ${escHtml(t.name)} · from bar ${startBar.toFixed(1)}${cache ? ` · ${cache.buf.duration.toFixed(1)} s` : ''}</span>
+      <button class="bank-btn arr-small danger-btn" data-act="delclip" title="Delete this recorded take (Delete)">✕ Delete take</button>`;
+    return;
+  }
   const sec = song && arr.sel != null ? song.sections[arr.sel] : null;
   if (!sec) {
     box.innerHTML = `<span class="arr-note">Click a block to edit it · drag blocks to reorder · ⌘C ⌘V ⌘D, Delete, ← → work on the selection · click the ruler to choose where Play starts.</span>`;
@@ -4600,7 +4620,12 @@ function bindArranger() {
     const clipEl = e.target.closest('.at-clip');
     arr.selClip = clipEl ? clipEl.dataset.clip : null;
     wrap.querySelectorAll('.at-clip').forEach(c => c.classList.toggle('sel', c.dataset.clip === arr.selClip));
-    if (clipEl) { arr.sel = null; wrap.querySelectorAll('.arr-block.sel').forEach(b => b.classList.remove('sel')); arrRenderInspector(); return; }
+    if (clipEl) {
+      arr.sel = null; wrap.querySelectorAll('.arr-block.sel').forEach(b => b.classList.remove('sel'));
+      arrRenderInspector();
+      if (e.target.closest('.at-x')) atDeleteClip(clipEl.dataset.clip);
+      return;
+    }
     const block = e.target.closest('.arr-block');
     arr.sel = block ? +block.dataset.si : null;
     wrap.querySelectorAll('.arr-block').forEach(b => b.classList.toggle('sel', +b.dataset.si === arr.sel));
@@ -4699,6 +4724,7 @@ function bindArranger() {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
     btn.blur();
+    if (btn.dataset.act === 'delclip') { if (arr.selClip) atDeleteClip(arr.selClip); return; }
     arrAction(btn.dataset.act);
   });
   insp.addEventListener('change', e => {
@@ -4815,11 +4841,15 @@ function bindArranger() {
     e.target.blur();
   });
   const ci = document.getElementById('arr-countin');
-  ci.value = String(arr.countInBars);
-  ci.addEventListener('change', () => {
-    arr.countInBars = parseInt(ci.value) || 0;
-    try { localStorage.setItem('groovygroova:song-countin', String(arr.countInBars)); } catch (e) { /* ignore */ }
-    ci.blur();
+  const ciShow = () => ci.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === arr.countInBars));
+  ciShow();
+  ci.addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    b.blur();
+    arr.countInBars = +b.dataset.v;
+    try { localStorage.setItem('groovygroova:song-countin', String(arr.countInBars)); } catch (e2) { /* ignore */ }
+    ciShow();
   });
   document.getElementById('arr-export').addEventListener('click', e => { e.currentTarget.blur(); arrExportAll(); });
 }
@@ -4836,6 +4866,7 @@ async function atDeleteClip(id) {
   idbDel(id).catch(() => {});
   arr.selClip = null;
   arrRenderTimeline();
+  arrRenderInspector();
 }
 
 // ============================================================
