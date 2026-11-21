@@ -401,7 +401,7 @@ I O            intro / outro
 
 ## 4. What exists, feature by feature
 
-- **34 patterns.** Nine African ones in 4/4 were added on 2026-11-21 at Gaël's
+- **36 patterns.** Nine African ones in 4/4 were added on 2026-11-21 at Gaël's
   request (Afrobeats, Highlife, Soukous, Makossa, Coupé-décalé, Amapiano,
   Gqom, Kuku, Kizomba): first versions on standard kits, not yet judged by
   ear; 12/8 rhythms were deliberately left out (no 12-step grid yet).
@@ -412,10 +412,18 @@ I O            intro / outro
   Ternary without a 12-step grid: each beat's triplet is written on its 1, e
   and &, and STYLE_SWING sets the 1/8 swing to 66–68, which moves e to 1/3 and
   & to 2/3 of the beat (`swingOffsetSteps`); the a stays empty. Use the same
-  trick for any other ternary groove. His Sonic Youth ("Youth Against
-  Fascism") excerpt only showed steady 8ths at ~146 with kick and snare not
-  separable, and the Caribou ("Melody Day") one had no readable drums: no
-  pattern was made from either. Four were corrected because they did not match the thing they
+  trick for any other ternary groove.
+  Those FR-14 excerpts were recorded speakers → microphone: no energy under
+  60 Hz or over 10 kHz, room smear, so the drums all but vanished. Sonic
+  Youth and Caribou were redone the same day from the studio audio of the
+  videos Gaël sent, where Demucs gives a strong drum stem: Noise Rock (144,
+  "Youth Against Fascism": kick on 1 +1 +2 3 +3 +4, snare 2 and 4, cymbal on
+  8ths) and 60s Psych Pop (138, "Melody Day": snare on every beat, kick on
+  every +, 8th hats). Method that works: Demucs drum stem → onsets → k-means
+  on per-onset band spectra (kick, snare and cymbal clusters fall out) → fold
+  on the librosa beat grid, choosing the rotation that puts the snare on 2
+  and 4. Ask for a digital source (a file, or a loopback capture), never a
+  room recording. Four were corrected because they did not match the thing they
   are named after: House had the pedal hat on the upbeats instead of the open
   hat; Bo Diddley's last kick was on step 14, neither son nor rumba clave, now
   12; Bossa's rim was on no clave at all, now the bossa clave 0/3/6/10/13;

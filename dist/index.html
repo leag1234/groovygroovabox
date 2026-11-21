@@ -1678,6 +1678,8 @@ window.CUSTOM_SAMPLE_KITS = {"salamander":{"label":"Salam.","fallback":"studio",
           <option value="shuffle">Blues Shuffle</option>
           <option value="motown">Motown</option>
           <option value="punk">Punk / D-Beat</option>
+          <option value="noiserock">Noise Rock</option>
+          <option value="psychpop">60s Psych Pop</option>
           <option value="secondline">Second Line</option>
         </optgroup>
         <optgroup label="Dance / Electronic">
@@ -3184,6 +3186,42 @@ const PATTERNS = {
       cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
   },
+  // Transcribed from the drum stem (Demucs) of a studio recording, onsets clustered
+  // by spectrum and folded on the beat grid; both verses agree.
+  noiserock: {
+    name: 'Noise Rock',
+    bpm: 144,
+    pattern: {
+      // Sonic Youth, "Youth Against Fascism" (1992). The kick takes every 8th the
+      // snare leaves free (1, +1, +2, 3, +3, +4) under a flat 2 and 4; the cymbal
+      // washes on every 8th, a little heavier on the beat.
+      kick:    ['normal', 0, 'normal', 0, 0, 0, 'normal', 0, 'normal', 0, 'normal', 0, 0, 0, 'normal', 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['halfopen', 0, 'closed', 0, 'halfopen', 0, 'closed', 0, 'halfopen', 0, 'closed', 0, 'halfopen', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  psychpop: {
+    name: '60s Psych Pop',
+    bpm: 138,
+    pattern: {
+      // Caribou, "Melody Day" (2007), drumming in the 60s Motown manner: a snare on
+      // every beat (as loud on 1 and 3 as on 2 and 4), the kick on every '+',
+      // 8th hats for the tambourine.
+      kick:    [0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0],
+      snare:   ['normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
   secondline: {
     name: 'Second Line',
     bpm: 92,
@@ -3561,6 +3599,7 @@ const STYLE_FEEL = {
   afrobeats: 'human', highlife: 'human', soukous: 'human', makossa: 'human',
   amapiano: 'human', kuku: 'human', kizomba: 'motown',
   tuareggallop: 'human', tuaregskip: 'human',
+  noiserock: 'human', psychpop: 'motown',
 };
 
 const STYLE_SWING = {
@@ -4402,6 +4441,7 @@ const STYLE_HUES = {
   afrobeats: 110, highlife: 52, soukous: 316, makossa: 196, coupedecale: 290,
   amapiano: 176, gqom: 240, kuku: 20, kizomba: 344,
   tuareggallop: 226, tuaregskip: 262,
+  noiserock: 0, psychpop: 320,
 };
 const SHADES = [56, 70, 44, 78, 38, 64];
 // Style of a take: stored since this version; for older takes, the pattern
