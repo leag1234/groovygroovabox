@@ -401,7 +401,10 @@ I O            intro / outro
 
 ## 4. What exists, feature by feature
 
-- **23 patterns.** Four were corrected because they did not match the thing they
+- **32 patterns.** Nine African ones in 4/4 were added on 2026-11-21 at Gaël's
+  request (Afrobeats, Highlife, Soukous, Makossa, Coupé-décalé, Amapiano,
+  Gqom, Kuku, Kizomba): first versions on standard kits, not yet judged by
+  ear; 12/8 rhythms were deliberately left out (no 12-step grid yet). Four were corrected because they did not match the thing they
   are named after: House had the pedal hat on the upbeats instead of the open
   hat; Bo Diddley's last kick was on step 14, neither son nor rumba clave, now
   12; Bossa's rim was on no clave at all, now the bossa clave 0/3/6/10/13;

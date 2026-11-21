@@ -1697,6 +1697,17 @@
           <option value="bodiddley">Bo Diddley</option>
           <option value="afrobeat">Afrobeat</option>
         </optgroup>
+        <optgroup label="Africa">
+          <option value="afrobeats">Afrobeats</option>
+          <option value="highlife">Highlife</option>
+          <option value="soukous">Soukous</option>
+          <option value="makossa">Makossa</option>
+          <option value="coupedecale">Coupé-décalé</option>
+          <option value="amapiano">Amapiano</option>
+          <option value="gqom">Gqom</option>
+          <option value="kuku">Kuku</option>
+          <option value="kizomba">Kizomba</option>
+        </optgroup>
         <optgroup label="—">
           <option value="empty">Empty</option>
         </optgroup>
@@ -3236,6 +3247,152 @@ const PATTERNS = {
       cowbell: ['normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0],
     },
   },
+  // ---- Africa (4/4). Played on any kit: toms, rim and cowbell stand in
+  // for the hand drums and bells. First versions, to be judged by ear.
+  afrobeats: {
+    name: 'Afrobeats',
+    bpm: 104,
+    pattern: {
+      // Nigeria / Ghana (Burna Boy, Wizkid). Kick in a 3-3-2 shape, clap on 2 and 4,
+      // rim answering off the beat, shaker 16ths. Light 16th swing.
+      kick:    ['normal', 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 0, 0],
+      snare:   [0, 0, 0, 'crossstick', 0, 0, 0, 'crossstick', 0, 0, 0, 'crossstick', 0, 0, 'crossstick', 0],
+      clap:    [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      hh:      ['closed', 'closed', 'halfopen', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'halfopen', 'closed', 'closed', 'closed', 'closed', 'closed'],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  highlife: {
+    name: 'Highlife',
+    bpm: 120,
+    pattern: {
+      // Ghana. The bell plays the clave (3-2), kick walking on 1 and the & of 2,
+      // light rim backbeat, 8th hats, a low tom answering like a conga.
+      kick:    ['normal', 0, 0, 0, 0, 0, 'normal', 0, 'normal', 0, 0, 0, 0, 0, 'normal', 0],
+      snare:   [0, 0, 0, 0, 'rim', 0, 0, 0, 0, 0, 0, 0, 'rim', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal'],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: ['normal', 0, 0, 'normal', 0, 0, 'normal', 0, 0, 0, 'normal', 0, 'normal', 0, 0, 0],
+    },
+  },
+  soukous: {
+    name: 'Soukous',
+    bpm: 138,
+    pattern: {
+      // Congo (rumba / seben). Kick on 1 and 3, the snare on every & and the
+      // backbeats, 16th hats with a half-open lift: the fast seben drive.
+      kick:    ['normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0],
+      snare:   [0, 0, 'normal', 0, 'normal', 0, 'normal', 'ghost', 0, 0, 'normal', 0, 'normal', 0, 'normal', 'ghost'],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'halfopen', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'halfopen', 'closed'],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  makossa: {
+    name: 'Makossa',
+    bpm: 118,
+    pattern: {
+      // Cameroon. Disco-like lift with half-open hats on the &, a walking kick and a
+      // ghosted backbeat.
+      kick:    ['normal', 0, 0, 0, 0, 0, 'normal', 0, 'normal', 0, 0, 0, 0, 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 'ghost', 0, 'normal', 0, 0, 'ghost'],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'halfopen', 0, 'closed', 0, 'halfopen', 0, 'closed', 0, 'halfopen', 0, 'closed', 0, 'halfopen', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  coupedecale: {
+    name: 'Coupé-décalé',
+    bpm: 126,
+    pattern: {
+      // Côte d'Ivoire. Four on the floor, clap and snare on 2 and 4, a 16th snare
+      // run into the one, toms answering in the second half.
+      kick:    ['normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 'ghost', 0, 0, 0, 0, 'normal', 'ghost', 'ghost', 'ghost'],
+      clap:    [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      hh:      ['closed', 'closed', 'halfopen', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'halfopen', 'closed', 'closed', 'closed', 'closed', 'closed'],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'normal', 'normal', 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  amapiano: {
+    name: 'Amapiano',
+    bpm: 112,
+    pattern: {
+      // South Africa. Soft four on the floor, shaker 16ths, a syncopated rim
+      // figure, and a low tom on the offbeats standing in for the log drum.
+      kick:    ['normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0],
+      snare:   [0, 0, 0, 'crossstick', 0, 0, 'crossstick', 0, 0, 0, 0, 'crossstick', 0, 0, 'crossstick', 0],
+      clap:    [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      hh:      ['closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed', 'closed'],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal'],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  gqom: {
+    name: 'Gqom',
+    bpm: 126,
+    pattern: {
+      // South Africa (Durban). No four on the floor: a broken kick, a clap on the
+      // last backbeat, sparse offbeat hats, dark and spacious.
+      kick:    ['normal', 0, 0, 'normal', 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 'normal', 0, 0],
+      snare:   [0, 0, 0, 0, 0, 0, 0, 'crossstick', 0, 0, 0, 0, 0, 0, 0, 'crossstick'],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      hh:      [0, 0, 'closed', 0, 0, 0, 'closed', 0, 0, 0, 'closed', 0, 0, 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  kuku: {
+    name: 'Kuku',
+    bpm: 132,
+    pattern: {
+      // Guinea (djembe, 4/4). Dununba on the kick, sangban on the tom, the kenkeni
+      // bell on 8ths; rim for the djembe slaps, ghosts for its tones.
+      kick:    ['normal', 0, 0, 0, 0, 0, 'normal', 0, 'normal', 0, 0, 0, 0, 0, 0, 0],
+      snare:   [0, 'ghost', 'ghost', 'rim', 0, 0, 0, 0, 0, 'ghost', 'ghost', 'rim', 0, 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 'normal', 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: ['normal', 0, 'normal', 0, 'normal', 0, 'normal', 0, 'normal', 0, 'normal', 0, 'normal', 0, 'normal', 0],
+    },
+  },
+  kizomba: {
+    name: 'Kizomba',
+    bpm: 92,
+    pattern: {
+      // Angola. Slow and heavy: kick in a 3+5 shape on each half, clap on 2 and 4,
+      // rim on the & of 2 and 4, 8th hats.
+      kick:    ['normal', 0, 0, 'normal', 0, 0, 0, 0, 'normal', 0, 0, 'normal', 0, 0, 0, 0],
+      snare:   [0, 0, 0, 0, 0, 0, 'crossstick', 0, 0, 0, 0, 0, 0, 0, 'crossstick', 0],
+      clap:    [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
   empty: {
     name: '— Empty —',
     bpm: null,
@@ -3347,6 +3504,8 @@ const STYLE_FEEL = {
   bossa: 'human', samba: 'human', rumba: 'human', chacha: 'human',
   shuffle: 'jazzshuffle', motown: 'motown', punk: 'punk', secondline: 'nola',
   afrobeat: 'afrobeat',
+  afrobeats: 'human', highlife: 'human', soukous: 'human', makossa: 'human',
+  amapiano: 'human', kuku: 'human', kizomba: 'motown',
 };
 
 const STYLE_SWING = {
@@ -3356,6 +3515,9 @@ const STYLE_SWING = {
   funk:       [54, 16],   // Linn's "loosens straight 16ths"
   breakbeat:  [54, 16],
   garage:     [58, 16],   // the 2-step skip
+  afrobeats:  [56, 16],   // the lilt of the shaker
+  amapiano:   [56, 16],
+  kizomba:    [54, 16],
 };
 
 // A style brings its tempo, its swing and its feel. Stopped, it sets them all: that is
@@ -4180,6 +4342,8 @@ const STYLE_HUES = {
   disco: 300, house: 186, garage: 168, dnb: 232,
   hiphop: 36, rnb2000: 272, trap: 256, reggae: 122, dancehall: 96,
   son: 14, rumba: 8, chacha: 340, bossa: 150, samba: 60, bodiddley: 24, afrobeat: 80,
+  afrobeats: 110, highlife: 52, soukous: 316, makossa: 196, coupedecale: 290,
+  amapiano: 176, gqom: 240, kuku: 20, kizomba: 344,
 };
 const SHADES = [56, 70, 44, 78, 38, 64];
 // Style of a take: stored since this version; for older takes, the pattern
