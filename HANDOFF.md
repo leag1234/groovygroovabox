@@ -495,7 +495,8 @@ from the repo as `text/plain` — the raw link displays 10 MB of source instead 
 downloading. The release asset is served with `Content-Disposition: attachment`.
 
 ```
-v1.3.0 -> main @ 2026-11-13   latest (groove, kits, Song view, audio tracks)
+v1.3.1 -> main @ 2026-11-21   latest (13 new patterns: Africa, Tuareg, Noise Rock, 60s Psych Pop)
+v1.3.0 -> 0c3d757             (groove, kits, Song view, audio tracks)
 v1.2.0 -> f725e95
 v1.1.0 -> e1b0770
 v1.0.0 -> 1db0941
@@ -503,7 +504,7 @@ v1.0.0 -> 1db0941
 
 The token in `~/.ggb-release-token` was also used, at Gaël's request, as a
 one-shot git credential helper for `git push` (never written to the remote
-URL or the git config). It still works as of v1.3.0.
+URL or the git config). It still works as of v1.3.1.
 
 Publishing needs a fine-grained token (Contents: read and write, that repo
 only) that **Gaël creates**; there is no `gh` CLI and no stored credential. The
