@@ -1707,6 +1707,8 @@
           <option value="gqom">Gqom</option>
           <option value="kuku">Kuku</option>
           <option value="kizomba">Kizomba</option>
+          <option value="tuareggallop">Tuareg Gallop</option>
+          <option value="tuaregskip">Tuareg Skip</option>
         </optgroup>
         <optgroup label="—">
           <option value="empty">Empty</option>
@@ -3393,6 +3395,43 @@ const PATTERNS = {
       cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
   },
+  // ---- Tuareg (Niger), transcribed from excerpts of Mdou Moctar, "Funeral for
+  // Justice" (2024): Demucs drum stem, onsets folded on a fixed tempo grid. Approximate.
+  // Ternary 4/4: each beat is a triplet written on its 1, e and & (the a stays empty);
+  // the 1/8 swing at 66-68 puts e and & on the second and third triplet.
+  tuareggallop: {
+    name: 'Tuareg Gallop',
+    bpm: 110,
+    pattern: {
+      // Measured: a hit on every beat, the in-between notes at 0.37 and 0.69 of the
+      // beat (a lilting triplet, middle note late), the kick galloping into beat 1.
+      kick:    ['normal', 'normal', 'normal', 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 'normal', 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 'closed', 'closed', 0, 'closed', 'closed', 'closed', 0, 'closed', 'closed', 'closed', 0, 'closed', 'closed', 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  tuaregskip: {
+    name: 'Tuareg Skip',
+    bpm: 132,
+    pattern: {
+      // Measured: a two-beat cell. Triplet hats that skip the middle note of beats 2
+      // and 4; the crack on the 2nd and 3rd triplet of beats 1 and 3, on the 3rd of
+      // beats 2 and 4; a soft kick on every beat.
+      kick:    ['normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0],
+      snare:   [0, 'ghost', 'normal', 0, 0, 0, 'ghost', 0, 0, 'ghost', 'normal', 0, 0, 0, 'normal', 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 'closed', 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 'closed', 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
   empty: {
     name: '— Empty —',
     bpm: null,
@@ -3506,6 +3545,7 @@ const STYLE_FEEL = {
   afrobeat: 'afrobeat',
   afrobeats: 'human', highlife: 'human', soukous: 'human', makossa: 'human',
   amapiano: 'human', kuku: 'human', kizomba: 'motown',
+  tuareggallop: 'human', tuaregskip: 'human',
 };
 
 const STYLE_SWING = {
@@ -3518,6 +3558,8 @@ const STYLE_SWING = {
   afrobeats:  [56, 16],   // the lilt of the shaker
   amapiano:   [56, 16],
   kizomba:    [54, 16],
+  tuareggallop: [68, 8],  // ternary, middle note a touch late (measured 0.37 / 0.69)
+  tuaregskip:   [66, 8],  // straight triplets
 };
 
 // A style brings its tempo, its swing and its feel. Stopped, it sets them all: that is
@@ -4344,6 +4386,7 @@ const STYLE_HUES = {
   son: 14, rumba: 8, chacha: 340, bossa: 150, samba: 60, bodiddley: 24, afrobeat: 80,
   afrobeats: 110, highlife: 52, soukous: 316, makossa: 196, coupedecale: 290,
   amapiano: 176, gqom: 240, kuku: 20, kizomba: 344,
+  tuareggallop: 226, tuaregskip: 262,
 };
 const SHADES = [56, 70, 44, 78, 38, 64];
 // Style of a take: stored since this version; for older takes, the pattern

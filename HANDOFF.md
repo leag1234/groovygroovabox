@@ -401,10 +401,21 @@ I O            intro / outro
 
 ## 4. What exists, feature by feature
 
-- **32 patterns.** Nine African ones in 4/4 were added on 2026-11-21 at Gaël's
+- **34 patterns.** Nine African ones in 4/4 were added on 2026-11-21 at Gaël's
   request (Afrobeats, Highlife, Soukous, Makossa, Coupé-décalé, Amapiano,
   Gqom, Kuku, Kizomba): first versions on standard kits, not yet judged by
-  ear; 12/8 rhythms were deliberately left out (no 12-step grid yet). Four were corrected because they did not match the thing they
+  ear; 12/8 rhythms were deliberately left out (no 12-step grid yet).
+  Two Tuareg ones, Tuareg Gallop (110) and Tuareg Skip (132), were transcribed
+  the same day from excerpts Gaël recorded of Mdou Moctar's "Funeral for
+  Justice": Demucs drum stem, onsets folded on a fixed-tempo grid. They are
+  approximate (the drums sit 14–27 dB under the guitars in those recordings).
+  Ternary without a 12-step grid: each beat's triplet is written on its 1, e
+  and &, and STYLE_SWING sets the 1/8 swing to 66–68, which moves e to 1/3 and
+  & to 2/3 of the beat (`swingOffsetSteps`); the a stays empty. Use the same
+  trick for any other ternary groove. His Sonic Youth ("Youth Against
+  Fascism") excerpt only showed steady 8ths at ~146 with kick and snare not
+  separable, and the Caribou ("Melody Day") one had no readable drums: no
+  pattern was made from either. Four were corrected because they did not match the thing they
   are named after: House had the pedal hat on the upbeats instead of the open
   hat; Bo Diddley's last kick was on step 14, neither son nor rumba clave, now
   12; Bossa's rim was on no clave at all, now the bossa clave 0/3/6/10/13;
