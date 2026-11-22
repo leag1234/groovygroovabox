@@ -423,7 +423,7 @@ I O            intro / outro
   on per-onset band spectra (kick, snare and cymbal clusters fall out) → fold
   on the librosa beat grid, choosing the rotation that puts the snare on 2
   and 4. Ask for a digital source (a file, or a loopback capture), never a
-  room recording. On 2026-11-22, same method, two more: French Rock (160,
+  room recording. On 2026-11-22, same method, two more: Driving Rock (160,
   Téléphone "Au cœur de la nuit": kick on 1 +1 3 +3, snare 2 and 4, 8th hats)
   and Philly Disco (120, Harold Melvin "Don't Leave Me This Way": four on the
   floor plus +1 and +3, open hat on +2 and +4; the record speeds up 115 →
