@@ -509,6 +509,12 @@ v1.1.0 -> e1b0770
 v1.0.0 -> 1db0941
 ```
 
+Gaël's site serves the latest release at https://www.indidea.org/groovygroovabox/.
+On the server, `/var/www/indidea/groovygroovabox/update.sh` downloads the
+latest release asset into `index.html`. The files there belong to gael:gael
+(since 2026-11-22), so no sudo is needed. Gaël runs it himself after a release:
+`ssh gael@indidea.org 'cd /var/www/indidea/groovygroovabox && sh update.sh'`.
+
 The token in `~/.ggb-release-token` was also used, at Gaël's request, as a
 one-shot git credential helper for `git push` (never written to the remote
 URL or the git config). It still works as of v1.3.2.
