@@ -1675,10 +1675,12 @@
           <option value="punk">Punk / D-Beat</option>
           <option value="noiserock">Noise Rock</option>
           <option value="psychpop">60s Psych Pop</option>
+          <option value="frenchrock">French Rock (80s)</option>
           <option value="secondline">Second Line</option>
         </optgroup>
         <optgroup label="Dance / Electronic">
           <option value="disco">Disco</option>
+          <option value="phillydisco">Philly Disco</option>
           <option value="house">House</option>
           <option value="garage">UK Garage 2-Step</option>
           <option value="dnb">Drum &amp; Bass</option>
@@ -2928,6 +2930,24 @@ const PATTERNS = {
       cowbell: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
     },
   },
+  phillydisco: {
+    name: 'Philly Disco',
+    bpm: 120,
+    pattern: {
+      // Harold Melvin & The Blue Notes, "Don't Leave Me This Way" (1975), Earl Young
+      // on drums. Four on the floor plus a kick on the '+' of 1 and of 3, so the
+      // bass drum gallops (1 + 2, 3 + 4); 8th hats, opening on the '+' of 2 and 4.
+      // The record speeds up from about 115 to 126 over six minutes.
+      kick:    ['normal', 0, 'normal', 0, 'normal', 0, 0, 0, 'normal', 0, 'normal', 0, 'normal', 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'open', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'open', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
   house: {
     name: 'House',
     bpm: 124,
@@ -3199,6 +3219,23 @@ const PATTERNS = {
       // 8th hats for the tambourine.
       kick:    [0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0],
       snare:   ['normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0, 'normal', 0, 0, 0],
+      clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
+      ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      tom:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      crash:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cowbell: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
+  },
+  frenchrock: {
+    name: 'French Rock',
+    bpm: 160,
+    pattern: {
+      // Téléphone, "Au cœur de la nuit" (1980), Richard Kolinka on drums. Fast and
+      // straight: the kick doubles on 1 and its '+', and again on 3 and its '+',
+      // against a flat snare on 2 and 4. Kick-kick-snare, kick-kick-snare.
+      kick:    ['normal', 0, 'normal', 0, 0, 0, 0, 0, 'normal', 0, 'normal', 0, 0, 0, 0, 0],
+      snare:   [0, 0, 0, 0, 'normal', 0, 0, 0, 0, 0, 0, 0, 'normal', 0, 0, 0],
       clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       hh:      ['closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0, 'closed', 0],
       ride:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -3584,7 +3621,7 @@ const STYLE_FEEL = {
   afrobeats: 'human', highlife: 'human', soukous: 'human', makossa: 'human',
   amapiano: 'human', kuku: 'human', kizomba: 'motown',
   tuareggallop: 'human', tuaregskip: 'human',
-  noiserock: 'human', psychpop: 'motown',
+  noiserock: 'human', psychpop: 'motown', frenchrock: 'human', phillydisco: 'disco',
 };
 
 const STYLE_SWING = {
@@ -4426,7 +4463,7 @@ const STYLE_HUES = {
   afrobeats: 110, highlife: 52, soukous: 316, makossa: 196, coupedecale: 290,
   amapiano: 176, gqom: 240, kuku: 20, kizomba: 344,
   tuareggallop: 226, tuaregskip: 262,
-  noiserock: 0, psychpop: 320,
+  noiserock: 0, psychpop: 320, frenchrock: 214, phillydisco: 284,
 };
 const SHADES = [56, 70, 44, 78, 38, 64];
 // Style of a take: stored since this version; for older takes, the pattern

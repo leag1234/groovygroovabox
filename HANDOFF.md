@@ -401,7 +401,7 @@ I O            intro / outro
 
 ## 4. What exists, feature by feature
 
-- **36 patterns.** Nine African ones in 4/4 were added on 2026-11-21 at Gaël's
+- **38 patterns.** Nine African ones in 4/4 were added on 2026-11-21 at Gaël's
   request (Afrobeats, Highlife, Soukous, Makossa, Coupé-décalé, Amapiano,
   Gqom, Kuku, Kizomba): first versions on standard kits, not yet judged by
   ear; 12/8 rhythms were deliberately left out (no 12-step grid yet).
@@ -423,7 +423,13 @@ I O            intro / outro
   on per-onset band spectra (kick, snare and cymbal clusters fall out) → fold
   on the librosa beat grid, choosing the rotation that puts the snare on 2
   and 4. Ask for a digital source (a file, or a loopback capture), never a
-  room recording. Four were corrected because they did not match the thing they
+  room recording. On 2026-11-22, same method, two more: French Rock (160,
+  Téléphone "Au cœur de la nuit": kick on 1 +1 3 +3, snare 2 and 4, 8th hats)
+  and Philly Disco (120, Harold Melvin "Don't Leave Me This Way": four on the
+  floor plus +1 and +3, open hat on +2 and +4; the record speeds up 115 →
+  126). The two Afrobeats sit together at the top of Africa as "Afrobeat 1
+  (Fela)" and "Afrobeat 2 (Afrobeats)"; their keys `afrobeat` and `afrobeats`
+  did not change, so saved takes and songs still find them. Four were corrected because they did not match the thing they
   are named after: House had the pedal hat on the upbeats instead of the open
   hat; Bo Diddley's last kick was on step 14, neither son nor rumba clave, now
   12; Bossa's rim was on no clave at all, now the bossa clave 0/3/6/10/13;
